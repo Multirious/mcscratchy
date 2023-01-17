@@ -1,22 +1,26 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::opcode::PrimaryOpCode;
 use rs_sb3::{
     block::{
         Block, BlockField, BlockInput, BlockInputValue, BlockMutation, IdOrValue, ShadowInputType,
     },
     string_hashmap::StringHashMap,
-    value::{Float, Int, Number, OpCode, Text, Value, ValueWithBool},
+    value::{Float, Int, Number, OpCode, Text, Uid, Value, ValueWithBool},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Uid(String);
+use crate::opcode::PrimaryOpCode;
+use crate::uid::UidExt;
 
-impl Uid {
-    pub fn new() -> Uid {
-        Uid(crate::uid::uid())
-    }
-}
+mod control;
+mod event;
+mod looks;
+mod motion;
+mod operator;
+mod sensing;
+mod sound;
+mod variable;
+
+mod procedural;
 
 /// Hat blocks are the blocks that start every script.
 pub struct HatBlock;
@@ -121,7 +125,7 @@ macro_rules! arg_inner {
             },
             Arg::BlockUid(b) => BlockInput {
                 shadow: ShadowInputType::NoShadow,
-                inputs: vec![Some(IdOrValue::Uid(b.0))],
+                inputs: vec![Some(IdOrValue::Uid(b))],
             },
         }
     };
@@ -153,12 +157,6 @@ impl<T: Into<Value>> Arg<T> {
     // fn arg_broadcast(self) -> BlockInput {}
     // fn arg_variable(self) -> BlockInput {}
     // fn arg_list(self) -> BlockInput {}
-}
-
-impl<T> From<Uid> for Arg<T> {
-    fn from(u: Uid) -> Self {
-        Arg::BlockUid(u)
-    }
 }
 
 macro_rules! into_arg {
@@ -213,13 +211,14 @@ pub fn operator_join<TextA: Into<Arg<Text>>, TextB: Into<Arg<Text>>>(
 //         .into()
 // }
 
-pub struct StackBuilder<S: BlockKind, E: BlockKind> {
+/// Build **1** stack of scratch block
+pub struct StackBuilder<S, E> {
     stack: HashMap<Uid, Block>,
     end: (Uid, PhantomData<E>),
     start: (Uid, PhantomData<S>),
 }
 
-impl<S: BlockKind, E: BlockKind> StackBuilder<S, E> {
+impl<S, E> StackBuilder<S, E> {
     pub fn start(block: Block) -> StackBuilder<S, E> {
         let uid = Uid::new();
         StackBuilder {
@@ -228,50 +227,36 @@ impl<S: BlockKind, E: BlockKind> StackBuilder<S, E> {
             end: (uid, PhantomData),
         }
     }
-
-    pub fn push<OS: BlockKind, OE: BlockKind>(
-        self,
-        other: StackBuilder<OS, OE>,
-    ) -> StackBuilder<S, OE> {
-        let StackBuilder {
-            mut stack,
-            end: _,
-            start,
-        } = self;
-        let StackBuilder {
-            stack: o_stack,
-            end: o_end,
-            start: _,
-        } = other;
-        stack.extend(o_stack);
-        StackBuilder {
-            stack,
-            end: o_end,
-            start,
-        }
-    }
 }
 
-impl<S: BlockKind> StackBuilder<S, HatBlock> {
-    pub fn connect<NE: BlockKind>(mut self, block: Block) -> StackBuilder<S, NE> {
-        let uid = Uid::new();
-        self.stack.insert(uid.clone(), block);
-        StackBuilder {
-            stack: self.stack,
-            start: (uid.clone(), PhantomData),
-            end: (uid, PhantomData),
-        }
-    }
-}
+trait CanBeStacked {}
+trait CanStackOnTop {}
 
-impl<S: BlockKind> StackBuilder<S, StackBlock> {
-    pub fn connect<NE: BlockKind>(mut self, block: Block) -> StackBuilder<S, NE> {
-        let uid = Uid::new();
-        self.stack.insert(uid.clone(), block);
+impl CanBeStacked for StackBlock {}
+impl CanBeStacked for CapBlock {}
+
+impl CanStackOnTop for StackBlock {}
+impl CanStackOnTop for HatBlock {}
+
+impl<S, E: CanStackOnTop> StackBuilder<S, E> {
+    pub fn next<NS, NE>(mut self, next_stack: StackBuilder<NS, NE>) -> StackBuilder<S, NE>
+    where
+        NS: CanBeStacked,
+    {
+        let StackBuilder { stack, end, start } = self;
+        let StackBuilder {
+            stack: next_stack,
+            end: next_end,
+            start: next_start,
+        } = next_stack;
+
+        let end_block = stack.get_mut(&end.0).unwrap();
+        end_block.next = Some(next_start.0);
+
         StackBuilder {
             stack: self.stack,
-            start: (uid.clone(), PhantomData),
-            end: (uid, PhantomData),
+            start,
+            end: next_end,
         }
     }
 }

@@ -14,3 +14,13 @@ pub fn uid() -> Uid {
     // SAFETY: We're taking from 'SOUP' const and they're all valid utf8 characters
     unsafe { String::from_utf8_unchecked(uid) }
 }
+
+pub trait UidExt {
+    fn generate() -> Uid {}
+}
+
+impl UidExt for Uid {
+    fn generate() -> Uid {
+        crate::uid::uid()
+    }
+}
