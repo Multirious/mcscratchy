@@ -11,49 +11,18 @@ use rs_sb3::{
 use crate::opcode::PrimaryOpCode;
 use crate::uid::UidExt;
 
-mod control;
-mod event;
-mod looks;
-mod motion;
-mod operator;
-mod sensing;
-mod sound;
-mod variable;
+// mod control;
+// mod event;
+// mod looks;
+// mod motion;
+// mod operator;
+// mod sensing;
+// mod sound;
+// mod variable;
 
-mod procedural;
+// mod procedural;
 
-/// Hat blocks are the blocks that start every script.
-pub struct HatBlock;
-
-/// Stack blocks are the blocks that perform specific commands.
-/// They can be place on top or below each other
-pub struct StackBlock;
-
-/// Reporter blocks are the values.
-pub struct ReporterBlock;
-
-/// Boolean block is a block that reports boolean values.
-pub struct BooleanBlock;
-
-/// C Block is a block that is a wrapper of other stack blocks.
-pub struct CBlock;
-
-/// Cap blocks are the blocks that end scripts.
-/// You cannot place any blocks below them.
-pub struct CapBlock;
-
-pub trait BlockKind {}
-pub trait CanContinue {}
-
-macro_rules! impl_block_kind {
-    ($($ty:ident)*) => {
-        $(
-            impl BlockKind for $ty {}
-        )*
-    }
-}
-
-impl_block_kind! {HatBlock StackBlock ReporterBlock BooleanBlock CBlock CapBlock}
+struct BlockInputBuilder {}
 
 /// Raw block creation
 #[derive(Debug, Default)]
@@ -61,26 +30,26 @@ struct BlockBuilder {
     opcode: OpCode,
     inputs: StringHashMap<BlockInput>,
     fields: StringHashMap<BlockField>,
-    mutation: Option<BlockMutation>,
+    // mutation: Option<BlockMutation>,
     shawdow: bool,
 }
 
 impl BlockBuilder {
-    pub fn end(self) -> Block {
-        Block {
-            opcode: self.opcode,
-            comment: None,
-            next: None,
-            parent: None,
-            inputs: self.inputs,
-            fields: self.fields,
-            shadow: self.shawdow,
-            top_level: true,
-            mutation: self.mutation,
-            x: Some(0.into()),
-            y: Some(0.into()),
-        }
-    }
+    // pub fn into_block(self) -> Block {
+    //     Block {
+    //         opcode: self.opcode,
+    //         comment: None,
+    //         next: None,
+    //         parent: None,
+    //         inputs: self.inputs,
+    //         fields: self.fields,
+    //         shadow: self.shawdow,
+    //         top_level: true,
+    //         mutation: self.mutation,
+    //         x: Some(0.into()),
+    //         y: Some(0.into()),
+    //     }
+    // }
 
     pub fn new<O: Into<OpCode>>(opcode: O) -> BlockBuilder {
         BlockBuilder {
@@ -107,156 +76,196 @@ impl BlockBuilder {
 
 /// Argument in the block input
 /// You can insert a value but you could also insert a block in
-pub enum Arg<T> {
+pub enum Arg {
     /// Insert a value `T` as input
-    Value(T),
-    /// Insert a block as input
-    BlockUid(Uid),
+    Value(Value),
+    /// Insert a of block as input. This will take the first block in the stack of the StackBuilder.
+    Block(StackBuilder<Insertable, Insertable>),
 }
 
-macro_rules! arg_inner {
-    ($arg:expr, $input_type:ident) => {
-        match $arg {
-            Arg::Value(v) => BlockInput {
-                shadow: ShadowInputType::Shadow,
-                inputs: vec![Some(IdOrValue::Value(BlockInputValue::$input_type {
-                    value: v.into(),
-                }))],
-            },
-            Arg::BlockUid(b) => BlockInput {
-                shadow: ShadowInputType::NoShadow,
-                inputs: vec![Some(IdOrValue::Uid(b))],
-            },
-        }
-    };
+// macro_rules! arg_inner {
+//     ($arg:expr, $input_type:ident) => {
+//         match $arg {
+//             Arg::Value(v) => BlockInput {
+//                 shadow: ShadowInputType::Shadow,
+//                 inputs: vec![Some(IdOrValue::Value(BlockInputValue::$input_type {
+//                     value: v,
+//                 }))],
+//             },
+//             Arg::BlockUid(b) => BlockInput {
+//                 shadow: ShadowInputType::NoShadow,
+//                 inputs: vec![Some(IdOrValue::Uid(b))],
+//             },
+//         }
+//     };
+// }
+
+// impl Arg {
+//     fn arg_number(self) -> BlockInput {
+//         arg_inner!(self, Number)
+//     }
+
+//     fn arg_positive_number(self) -> BlockInput {
+//         arg_inner!(self, PositiveNumber)
+//     }
+//     fn arg_positive_integer(self) -> BlockInput {
+//         arg_inner!(self, PositiveInteger)
+//     }
+//     fn arg_integer(self) -> BlockInput {
+//         arg_inner!(self, Integer)
+//     }
+//     fn arg_angle(self) -> BlockInput {
+//         arg_inner!(self, Angle)
+//     }
+//     fn arg_color(self) -> BlockInput {
+//         arg_inner!(self, Color)
+//     }
+//     fn arg_string(self) -> BlockInput {
+//         arg_inner!(self, String)
+//     }
+//     // fn arg_broadcast(self) -> BlockInput {}
+//     // fn arg_variable(self) -> BlockInput {}
+//     // fn arg_list(self) -> BlockInput {}
+// }
+
+// macro_rules! into_arg {
+//     ($($ty:ident)*) => {
+//         $(
+//             impl From<$ty> for Arg {
+//                 fn from(v: $ty) -> Self {
+//                     Arg::Value(v.into())
+//                 }
+//             }
+//         )*
+//     };
+// }
+
+// into_arg! {Int Float Text bool Number Value ValueWithBool}
+
+impl From<Int> for Arg {
+    fn from(v: i64) -> Self {
+        Arg::Value(Value::Number(Number::Int(v)))
+    }
 }
 
-impl<T: Into<Value>> Arg<T> {
-    fn arg_number(self) -> BlockInput {
-        arg_inner!(self, Number)
+impl From<Float> for Arg {
+    fn from(v: f64) -> Self {
+        Arg::Value(Value::Number(Number::Float(v)))
     }
-
-    fn arg_positive_number(self) -> BlockInput {
-        arg_inner!(self, PositiveNumber)
-    }
-    fn arg_positive_integer(self) -> BlockInput {
-        arg_inner!(self, PositiveInteger)
-    }
-    fn arg_integer(self) -> BlockInput {
-        arg_inner!(self, Integer)
-    }
-    fn arg_angle(self) -> BlockInput {
-        arg_inner!(self, Angle)
-    }
-    fn arg_color(self) -> BlockInput {
-        arg_inner!(self, Color)
-    }
-    fn arg_string(self) -> BlockInput {
-        arg_inner!(self, String)
-    }
-    // fn arg_broadcast(self) -> BlockInput {}
-    // fn arg_variable(self) -> BlockInput {}
-    // fn arg_list(self) -> BlockInput {}
 }
 
-macro_rules! into_arg {
-    ($($ty:ident)*) => {
-        $(
-            impl From<$ty> for Arg<$ty> {
-                fn from(v: $ty) -> Self {
-                    Arg::Value(v)
-                }
-            }
-        )*
-    };
+impl From<Text> for Arg {
+    fn from(v: Text) -> Self {
+        Arg::Value(Value::Text(v))
+    }
 }
 
-into_arg! {Int Float Text bool Number Value ValueWithBool}
+impl<'a> From<&'a str> for Arg {
+    fn from(v: &'a str) -> Self {
+        Arg::Value(Value::Text(v.to_string()))
+    }
+}
+
+impl<'a> From<StackBuilder<Insertable, Insertable>> for Arg {
+    fn from(v: ) -> Self {
+        Arg::Value(Value::Text(v.to_string()))
+    }
+}
 
 /// This script start when then green flag is clicked
-pub fn event_when_flag_clicked() -> StackBuilder<HatBlock, HatBlock> {
-    StackBuilder::start(BlockBuilder::new(PrimaryOpCode::event_whenflagclicked).end())
+pub fn event_when_flag_clicked() -> StackBuilder<UnlinkableSide, LinkableSide> {
+    StackBuilder::start_with_capacity(BlockBuilder::new(PrimaryOpCode::event_whenflagclicked), 1)
 }
 
 /// Move sprite by steps
-pub fn motion_move_steps<Steps: Into<Arg<Number>>>(
+pub fn motion_move_steps<Steps: Into<Arg>>(
     steps: Steps,
-) -> StackBuilder<StackBlock, StackBlock> {
-    StackBuilder::start(
+) -> StackBuilder<LinkableSide, LinkableSide> {
+    StackBuilder::start_with_capacity(
         BlockBuilder::new(PrimaryOpCode::motion_movesteps)
-            .input("STEPS", steps.into().arg_number())
-            .end(),
+            .input("STEPS", steps.into().arg_number()),
+        1,
     )
 }
 
 /// Join 2 text together
-pub fn operator_join<TextA: Into<Arg<Text>>, TextB: Into<Arg<Text>>>(
+pub fn operator_join<TextA: Into<Arg>, TextB: Into<Arg>>(
     a: TextA,
     b: TextB,
-) -> StackBuilder<ReporterBlock, ReporterBlock> {
-    StackBuilder::start(
+) -> StackBuilder<Insertable, Insertable> {
+    StackBuilder::start_with_capacity(
         BlockBuilder::new(PrimaryOpCode::operator_join)
             .input("STRING1", a.into().arg_string())
-            .input("STRING2", b.into().arg_string())
-            .end()
-            .into(),
+            .input("STRING2", b.into().arg_string()),
+        1,
     )
 }
 
-// /// Move sprite by steps
-// pub fn looks_switch_costume_to<Costume: Into<Arg<Number>>>(steps: Steps) -> StackBlock {
-//     BlockBuilder::new(PrimaryOpCode::motion_movesteps)
-//         .input("STEPS", steps.into().arg_number())
-//         .end()
-//         .into()
-// }
+/// A side that cannot connect to other block.
+/// Like a HatBlock with no connector at the top or a CapBlock with not connector at the bottom.
+struct UnlinkableSide;
+/// A side that can be connect to other block.
+/// Like a stack block that can connect on top and bottom.
+/// Like a HatBlock with connector at the bottom or a CapBlock with connector at the top.
+struct LinkableSide;
+
+/// An Insertable is not a stackable block but more like a block that is used to be insert in a block input.
+/// Like a reporter.
+struct Insertable;
+
+/// An InsertableBool is is just like Insertable
+/// Like a bool reporter.
+struct InsertableBool;
 
 /// Build **1** stack of scratch block
+/// The generic S is type of side of the starting block.
+/// The generic E is type of side of the ending block.
+/// They're here for figuring out of these 2 block can connect each other in compile time.
 pub struct StackBuilder<S, E> {
-    stack: HashMap<Uid, Block>,
-    end: (Uid, PhantomData<E>),
-    start: (Uid, PhantomData<S>),
+    stack: Vec<BlockBuilder>,
+    end: PhantomData<E>,
+    start: PhantomData<S>,
 }
 
 impl<S, E> StackBuilder<S, E> {
-    pub fn start(block: Block) -> StackBuilder<S, E> {
-        let uid = Uid::new();
+    pub fn start(block: BlockBuilder) -> StackBuilder<S, E> {
         StackBuilder {
-            stack: HashMap::from_iter([(uid.clone(), block)]),
-            start: (uid.clone(), PhantomData),
-            end: (uid, PhantomData),
+            stack: vec![block],
+            start: PhantomData,
+            end: PhantomData,
+        }
+    }
+
+    pub fn start_with_capacity(block: BlockBuilder, capacity: usize) -> StackBuilder<S, E> {
+        let stack = Vec::with_capacity(capacity);
+        stack.push(block);
+        StackBuilder {
+            stack,
+            start: PhantomData,
+            end: PhantomData,
+        }
+    }
+
+    // pub fn into_stack(self) -> StringHashMap<Block> {
+    //     self.stack.windows(2)
+    // }
+}
+
+impl<S> StackBuilder<S, LinkableSide> {
+    pub fn push<NE>(mut self, next_stack: StackBuilder<LinkableSide, NE>) -> StackBuilder<S, NE> {
+        self.stack.append(&mut next_stack.stack);
+        StackBuilder {
+            stack: self.stack,
+            start: self.start,
+            end: next_stack.end,
         }
     }
 }
 
-trait CanBeStacked {}
-trait CanStackOnTop {}
-
-impl CanBeStacked for StackBlock {}
-impl CanBeStacked for CapBlock {}
-
-impl CanStackOnTop for StackBlock {}
-impl CanStackOnTop for HatBlock {}
-
-impl<S, E: CanStackOnTop> StackBuilder<S, E> {
-    pub fn next<NS, NE>(mut self, next_stack: StackBuilder<NS, NE>) -> StackBuilder<S, NE>
-    where
-        NS: CanBeStacked,
-    {
-        let StackBuilder { stack, end, start } = self;
-        let StackBuilder {
-            stack: next_stack,
-            end: next_end,
-            start: next_start,
-        } = next_stack;
-
-        let end_block = stack.get_mut(&end.0).unwrap();
-        end_block.next = Some(next_start.0);
-
-        StackBuilder {
-            stack: self.stack,
-            start,
-            end: next_end,
-        }
-    }
+#[test]
+fn test() {
+    event_when_flag_clicked()
+        .push(motion_move_steps(5))
+        .push(motion_move_steps(5));
+    // .into_stack();
 }
