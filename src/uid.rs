@@ -8,7 +8,7 @@ const UID_LEN: usize = 20;
 
 pub fn uid() -> Uid {
     let mut rng = thread_rng();
-    let mut uid = (0..SOUP_LEN)
+    let uid = (0..UID_LEN)
         .map(|_| SOUP.as_bytes()[rng.gen_range(0..SOUP_LEN)])
         .collect();
     // SAFETY: We're taking from 'SOUP' const and they're all valid utf8 characters
@@ -16,7 +16,7 @@ pub fn uid() -> Uid {
 }
 
 pub trait UidExt {
-    fn generate() -> Uid {}
+    fn generate() -> Uid;
 }
 
 impl UidExt for Uid {

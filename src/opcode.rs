@@ -6,6 +6,8 @@
 //! - [`OpCode::motion_movesteps`] is use in [crate::block::Block] that mean this block is a "move steps" block.
 //! - [`OpCode::data_listcontents`] is use in [crate::monitor::Monitor] that mean this monitor is a monitor that display content of a list.
 
+#![allow(unused)]
+
 use rs_sb3::value::OpCode;
 
 #[allow(non_camel_case_types)]
