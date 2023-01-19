@@ -1,13 +1,14 @@
-use std::marker::PhantomData;
-
 use crate::opcode::PrimaryOpCode;
 
 use super::{arg::*, script_builder::BlockBuilder, typed_script_builder::*};
 
 /// Add 2 number together
-pub fn add<NumA: IntoArg<Number>, NumB: IntoArg<Number>>(a: NumA, b: NumB) -> Reporter<Number> {
-    TypedStackBuilder::start_with_capacity(
-        1,
+pub fn add<NumA, NumB>(a: NumA, b: NumB) -> JustReporter<Number>
+where
+    NumA: IntoArg<Number>,
+    NumB: IntoArg<Number>,
+{
+    TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_add)
             .input_arg("NUM1", a.into_arg())
             .input_arg("NUM2", b.into_arg()),
@@ -16,9 +17,12 @@ pub fn add<NumA: IntoArg<Number>, NumB: IntoArg<Number>>(a: NumA, b: NumB) -> Re
 }
 
 /// Check if 2 value is equal
-pub fn equals<ValA: IntoArg<Value>, ValB: IntoArg<Value>>(a: ValA, b: ValB) -> Reporter<Number> {
-    TypedStackBuilder::start_with_capacity(
-        1,
+pub fn equals<ValA, ValB>(a: ValA, b: ValB) -> JustReporter<Bool>
+where
+    ValA: IntoArg<Value>,
+    ValB: IntoArg<Value>,
+{
+    TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_equals)
             .input_arg("OPERAND1", a.into_arg())
             .input_arg("OPERAND2", b.into_arg()),
@@ -27,9 +31,12 @@ pub fn equals<ValA: IntoArg<Value>, ValB: IntoArg<Value>>(a: ValA, b: ValB) -> R
 }
 
 /// Join 2 text together
-pub fn join<TextA: IntoArg<Text>, TextB: IntoArg<Text>>(a: TextA, b: TextB) -> Reporter<Text> {
-    TypedStackBuilder::start_with_capacity(
-        1,
+pub fn join<TextA, TextB>(a: TextA, b: TextB) -> JustReporter<Text>
+where
+    TextA: IntoArg<Text>,
+    TextB: IntoArg<Text>,
+{
+    TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_join)
             .input_arg("STRING1", a.into_arg())
             .input_arg("STRING2", b.into_arg()),

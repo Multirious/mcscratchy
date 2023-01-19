@@ -9,21 +9,21 @@ derive_everything! {
     pub struct UnstackableSide;
 }
 #[derive(Debug, Clone, PartialEq)]
-pub struct AdvReporter<T, S, E>(pub TypedStackBuilder<S, E>, pub PhantomData<T>);
+pub struct Reporter<T, S, E>(pub TypedStackBuilder<S, E>, pub PhantomData<T>);
 
-impl<T, S, E> AdvReporter<T, S, E> {
-    pub fn new(typed_stack_builder: TypedStackBuilder<S, E>) -> AdvReporter<T, S, E> {
-        AdvReporter(typed_stack_builder, PhantomData)
+impl<T, S, E> Reporter<T, S, E> {
+    pub fn new(typed_stack_builder: TypedStackBuilder<S, E>) -> Reporter<T, S, E> {
+        Reporter(typed_stack_builder, PhantomData)
     }
 }
 
-impl<T, S, E> From<TypedStackBuilder<S, E>> for AdvReporter<T, S, E> {
+impl<T, S, E> From<TypedStackBuilder<S, E>> for Reporter<T, S, E> {
     fn from(stb: TypedStackBuilder<S, E>) -> Self {
-        AdvReporter::new(stb)
+        Reporter::new(stb)
     }
 }
 
-pub type Reporter<T> = AdvReporter<T, UnstackableSide, UnstackableSide>;
+pub type JustReporter<T> = Reporter<T, UnstackableSide, UnstackableSide>;
 pub type HatBlock = TypedStackBuilder<UnstackableSide, StackableSide>;
 pub type CapBlock = TypedStackBuilder<StackableSide, UnstackableSide>;
 pub type StackBlock = TypedStackBuilder<StackableSide, StackableSide>;
@@ -57,7 +57,7 @@ impl<S, E> TypedStackBuilder<S, E> {
         block_builder: BlockBuilder,
     ) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
-            stack_builder: StackBuilder::start_with_capacity(block_builder, capacity),
+            stack_builder: StackBuilder::start_with_capacity(capacity, block_builder),
             start: PhantomData,
             end: PhantomData,
         }

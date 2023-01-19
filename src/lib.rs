@@ -1,8 +1,7 @@
-mod opcode;
-mod scripting;
-mod uid;
-
-pub use rs_sb3;
+pub mod opcode;
+pub mod project;
+pub mod scripting;
+pub mod uid;
 
 macro_rules! derive_everything {
     ($($item:item)*) => {

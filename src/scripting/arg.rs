@@ -4,7 +4,7 @@ use crate::derive_everything;
 
 use super::{
     script_builder::StackBuilder,
-    typed_script_builder::{AdvReporter, StackableSide, TypedStackBuilder},
+    typed_script_builder::{Reporter, StackableSide, TypedStackBuilder},
 };
 
 derive_everything! {
@@ -49,7 +49,7 @@ impl<E> IntoStackArg for TypedStackBuilder<StackableSide, E> {
     }
 }
 
-impl<T, S, E> IntoArg<T> for AdvReporter<T, S, E> {
+impl<T, S, E> IntoArg<T> for Reporter<T, S, E> {
     fn into_arg(self) -> Arg {
         Arg::Stack(self.0.into_untyped())
     }
@@ -73,7 +73,7 @@ into_arg_basic_impl! {
     Text => String,
     Value => String,
     Value => i64,
-    Value => f64,
+    Value => f64
 }
 
 impl IntoArg<Text> for &str {
