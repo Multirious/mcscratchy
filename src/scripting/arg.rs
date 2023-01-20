@@ -21,7 +21,7 @@ derive_everything! {
     pub struct List;
     pub struct Bool;
 
-    pub struct Value; // Enum of text and number
+    pub struct Value; // Could be type text or number
 }
 
 pub enum Arg {

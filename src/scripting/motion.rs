@@ -7,7 +7,7 @@ where
     Steps: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_movesteps).input_arg("STEPS", steps.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_movesteps).add_input_arg("STEPS", steps.into_arg()),
     )
 }
 
@@ -16,7 +16,8 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnright).input_arg("DEGREES", degress.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_turnright)
+            .add_input_arg("DEGREES", degress.into_arg()),
     )
 }
 
@@ -25,6 +26,7 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnleft).input_arg("DEGREES", degress.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_turnleft)
+            .add_input_arg("DEGREES", degress.into_arg()),
     )
 }

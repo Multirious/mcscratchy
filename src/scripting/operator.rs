@@ -10,8 +10,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_add)
-            .input_arg("NUM1", a.into_arg())
-            .input_arg("NUM2", b.into_arg()),
+            .add_input_arg("NUM1", a.into_arg())
+            .add_input_arg("NUM2", b.into_arg()),
     )
     .into()
 }
@@ -24,8 +24,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_equals)
-            .input_arg("OPERAND1", a.into_arg())
-            .input_arg("OPERAND2", b.into_arg()),
+            .add_input_arg("OPERAND1", a.into_arg())
+            .add_input_arg("OPERAND2", b.into_arg()),
     )
     .into()
 }
@@ -38,8 +38,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::operator_join)
-            .input_arg("STRING1", a.into_arg())
-            .input_arg("STRING2", b.into_arg()),
+            .add_input_arg("STRING1", a.into_arg())
+            .add_input_arg("STRING2", b.into_arg()),
     )
     .into()
 }

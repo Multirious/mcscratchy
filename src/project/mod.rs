@@ -18,60 +18,6 @@ pub mod target_builder;
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, PartialEq)]
-pub struct StageBuilder {
-    target_builder:          TargetBuilder,
-    tempo:                   f64,
-    video_state:             VideoState,
-    video_transparency:      f64,
-    /// Not availiable yet.
-    /// TODO:                do this.
-    text_to_speech_language: (),
-}
-
-impl Default for StageBuilder {
-    #[rustfmt::skip]
-    fn default() -> Self {
-        StageBuilder {
-            target_builder:          TargetBuilder::default(),
-            tempo:                   60.,
-            video_state:             VideoState::On,
-            video_transparency:      50.,
-            text_to_speech_language: (),
-        }
-    }
-}
-
-#[rustfmt::skip]
-#[derive(Debug, Clone, PartialEq)]
-pub struct SpriteBuilder {
-    target_builder: TargetBuilder,
-    visible:        bool,
-    x:              f64,
-    y:              f64,
-    size:           f64,
-    direction:      f64,
-    draggable:      bool,
-    rotation_style: RotationStyle,
-}
-
-impl Default for SpriteBuilder {
-    #[rustfmt::skip]
-    fn default() -> Self {
-        SpriteBuilder {
-            target_builder: TargetBuilder::default(),
-            visible:        true,
-            x:              0.,
-            y:              0.,
-            size:           100.,
-            direction:      90.,
-            draggable:      false,
-            rotation_style: RotationStyle::AllAround,
-        }
-    }
-}
-
-#[rustfmt::skip]
-#[derive(Debug, Clone, PartialEq)]
 pub struct ProjectBuilder {
     pub stage_builder:   StageBuilder,
     pub sprite_builders: Vec<SpriteBuilder>,

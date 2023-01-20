@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::arg::Arg;
+use super::{arg::Arg, typed_script_builder::TypedStackBuilder};
 use crate::{
     project::target_builder::{CommentBuilder, TargetBuilder},
     uid::Uid,
@@ -105,22 +105,22 @@ impl BlockBuilder {
         }
     }
 
-    pub fn input<S: Into<String>>(
+    pub fn add_input<K: Into<String>>(
         mut self,
-        key: S,
+        key: K,
         block_input_builder: BlockInputBuilder,
     ) -> Self {
         self.inputs.insert(key.into(), block_input_builder);
         self
     }
 
-    pub fn input_arg<K: Into<String>>(self, key: K, arg: Arg) -> Self {
+    pub fn add_input_arg<K: Into<String>>(self, key: K, arg: Arg) -> Self {
         match arg {
-            Arg::Value(v) => self.input(
+            Arg::Value(v) => self.add_input(
                 key.into(),
                 BlockInputBuilder::new(ShadowInputType::Shadow).input_some(StackOrValue::Value(v)),
             ),
-            Arg::Stack(b) => self.input(
+            Arg::Stack(b) => self.add_input(
                 key.into(),
                 BlockInputBuilder::new(ShadowInputType::NoShadow)
                     .input_some(StackOrValue::Stack(b)),
@@ -128,7 +128,7 @@ impl BlockBuilder {
         }
     }
 
-    pub fn input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
+    pub fn add_input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
         self.inputs.insert(
             key.into(),
             BlockInputBuilder::new(ShadowInputType::NoShadow)
@@ -137,7 +137,7 @@ impl BlockBuilder {
         self
     }
 
-    pub fn field<S: Into<String>>(mut self, key: S, block_field: BlockField) -> Self {
+    pub fn add_field<S: Into<String>>(mut self, key: S, block_field: BlockField) -> Self {
         self.fields.insert(key.into(), block_field);
         self
     }
@@ -147,8 +147,13 @@ impl BlockBuilder {
         self
     }
 
+    pub fn comment(mut self, comment_builder: CommentBuilder) -> Self {
+        self.comment = Some(comment_builder);
+        self
+    }
+
     /// Requires:
-    /// - target: To continue building into [`CommentBuilder`] and [`BlockInputBuilder`]
+    /// - target: To continue building into [`BlockInputBuilder`] and add comment to the target's comment list
     /// - final_stack: To continue building into [`BlockInputBuilder`]
     ///
     /// Returns:
@@ -172,7 +177,15 @@ impl BlockBuilder {
         for (key, input) in inputs {
             inputs_b.insert(key, input.build(target, final_stack, &my_uid));
         }
-        let comment = comment.map(|c| c.build(target).into_inner());
+        let comment = match comment {
+            Some(comment) => {
+                let (comment, comment_uid) = comment.build();
+                comment.block_id = Some(my_uid.clone().into_inner());
+                target.add_comment_with_uid(comment_uid, comment);
+                Some(comment_uid.into_inner())
+            }
+            None => None,
+        };
         let block_b = Block {
             opcode,
             comment,
@@ -240,5 +253,11 @@ impl StackBuilder {
         let previous_block = previous_block.unwrap();
         stack_b.insert(previous_block.1, previous_block.0);
         (stack_b, first_block_uid)
+    }
+}
+
+impl<S, E> From<TypedStackBuilder<S, E>> for StackBuilder {
+    fn from(value: TypedStackBuilder<S, E>) -> Self {
+        value.into_untyped()
     }
 }
