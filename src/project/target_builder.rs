@@ -5,6 +5,7 @@ use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 use crate::scripting::script_builder::StackBuilder;
 
 use super::*;
+use file_manager::{File, ValidFile};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VariableBuilder {
@@ -85,19 +86,19 @@ impl CommentBuilder {
         }
     }
 
-    pub fn pos(self, x: f64, y: f64) -> Self {
+    pub fn pos(mut self, x: f64, y: f64) -> Self {
         self.x = Some(x);
         self.y = Some(y);
         self
     }
 
-    pub fn size(self, width: u64, height: u64) -> Self {
+    pub fn size(mut self, width: u64, height: u64) -> Self {
         self.width = width;
         self.height = height;
         self
     }
 
-    pub fn minimized(self, minimized: bool) -> Self {
+    pub fn minimized(mut self, minimized: bool) -> Self {
         self.minimized = minimized;
         self
     }
@@ -220,7 +221,7 @@ impl TargetBuilder {
         self
     }
 
-    pub fn build(self) -> Target {
+    pub fn build(self, file_buff: &mut Vec<File>) -> Target {
         let TargetBuilder {
             name,
             variables,
@@ -275,11 +276,11 @@ impl TargetBuilder {
             .collect();
         let costumes: Vec<Costume> = costumes
             .into_iter()
-            .map(|costume_builder| costume_builder.build())
+            .map(|costume_builder| costume_builder.build(file_buff))
             .collect();
         let sounds: Vec<Sound> = sounds
             .into_iter()
-            .map(|sound_builder| sound_builder.build())
+            .map(|sound_builder| sound_builder.build(file_buff))
             .collect();
         Target {
             name,
@@ -316,7 +317,6 @@ impl Default for TargetBuilder {
     }
 }
 
-/// Not really sure what to do here yet
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CostumeBuilder {
     rotation_center_x: i64,
@@ -325,7 +325,21 @@ pub struct CostumeBuilder {
 }
 
 impl CostumeBuilder {
-    pub fn build(self) -> Costume {
+    pub fn new(asset_builder: AssetBuilder) -> CostumeBuilder {
+        CostumeBuilder {
+            asset: asset_builder,
+            rotation_center_x: 0,
+            rotation_center_y: 0,
+        }
+    }
+
+    pub fn rotation_center(mut self, x: i64, y: i64) -> Self {
+        self.rotation_center_x = x;
+        self.rotation_center_y = y;
+        self
+    }
+
+    pub fn build(self, file_buff: &mut Vec<File>) -> Costume {
         let CostumeBuilder {
             rotation_center_x,
             rotation_center_y,
@@ -335,7 +349,7 @@ impl CostumeBuilder {
             rotation_center_x: rotation_center_x.into(),
             rotation_center_y: rotation_center_y.into(),
             bitmap_resolution: None,
-            asset: asset.build(),
+            asset: asset.build(file_buff),
         }
     }
 }
@@ -350,7 +364,7 @@ pub struct SoundBuilder {
 }
 
 impl SoundBuilder {
-    pub fn build(self) -> Sound {
+    pub fn build(self, file_buff: &mut Vec<File>) -> Sound {
         let SoundBuilder {
             rate,
             sample_count,
@@ -361,7 +375,7 @@ impl SoundBuilder {
             rate,
             sample_count,
             format,
-            asset: asset.build(),
+            asset: asset.build(file_buff),
         }
     }
 }
@@ -369,26 +383,34 @@ impl SoundBuilder {
 /// Not really sure what to do here yet
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetBuilder {
-    asset_id: Uid,
     name: String,
-    md5ext: Option<String>,
-    data_format: String,
+    file: ValidFile,
 }
 
 impl AssetBuilder {
-    pub fn build(self) -> Asset {
-        let AssetBuilder {
-            asset_id,
-            name,
-            md5ext,
-            data_format,
-        } = self;
-        Asset {
-            asset_id: asset_id.into_inner(),
-            name,
-            md5ext,
-            data_format,
+    pub fn new<S: Into<String>>(name: S, file: ValidFile) -> AssetBuilder {
+        AssetBuilder {
+            name: name.into(),
+            file,
         }
+    }
+
+    pub fn build(self, file_buff: &mut Vec<File>) -> Asset {
+        let AssetBuilder { name, file } = self;
+        let md5_hash = file_manager::hex(&file.md5_hash());
+        let extension = file.extension;
+        let asset = Asset {
+            asset_id: md5_hash.clone(),
+            name,
+            md5ext: Some(md5_hash.clone() + "." + &extension),
+            data_format: extension.clone(),
+        };
+        let md5_path: std::path::PathBuf = md5_hash.into();
+        file_buff.push(File {
+            path: md5_path.with_extension(extension),
+            content: file.file.content,
+        });
+        asset
     }
 }
 
@@ -396,9 +418,9 @@ impl AssetBuilder {
 #[derive(Debug, Clone, PartialEq)]
 pub struct StageBuilder {
     target:                  TargetBuilder,
-    tempo:                   f64,
+    tempo:                   i64,
     video_state:             VideoState,
-    video_transparency:      f64,
+    video_transparency:      i64,
     /// Not availiable yet.
     /// TODO: do this.
     text_to_speech_language: (),
@@ -412,12 +434,12 @@ impl StageBuilder {
         }
     }
 
-    pub fn tempo(mut self, tempo: f64) -> Self {
+    pub fn tempo(mut self, tempo: i64) -> Self {
         self.tempo = tempo;
         self
     }
 
-    pub fn video_transparency(mut self, video_transparency: f64) -> Self {
+    pub fn video_transparency(mut self, video_transparency: i64) -> Self {
         self.video_transparency = video_transparency;
         self
     }
@@ -427,7 +449,7 @@ impl StageBuilder {
         self
     }
 
-    pub fn build(self) -> Stage {
+    pub fn build(self, file_buff: &mut Vec<File>) -> Stage {
         let StageBuilder {
             target,
             tempo,
@@ -436,7 +458,7 @@ impl StageBuilder {
             text_to_speech_language,
         } = self;
         Stage {
-            target: target.build(),
+            target: target.build(file_buff),
             tempo: tempo.into(),
             video_state,
             video_transparency: video_transparency.into(),
@@ -451,9 +473,9 @@ impl Default for StageBuilder {
     fn default() -> Self {
         StageBuilder {
             target:                  TargetBuilder::default(),
-            tempo:                   60.,
+            tempo:                   60,
             video_state:             VideoState::On,
-            video_transparency:      50.,
+            video_transparency:      50,
             text_to_speech_language: (),
         }
     }
@@ -509,6 +531,30 @@ impl SpriteBuilder {
     pub fn rotation_style(mut self, rotation_style: RotationStyle) -> Self {
         self.rotation_style = rotation_style;
         self
+    }
+
+    pub fn build(self, file_buff: &mut Vec<File>) -> Sprite {
+        let SpriteBuilder {
+            target,
+            visible,
+            x,
+            y,
+            size,
+            direction,
+            draggable,
+            rotation_style,
+        } = self;
+        Sprite {
+            target: target.build(file_buff),
+            visible,
+            x: x.into(),
+            y: y.into(),
+            size: size.into(),
+            direction: direction.into(),
+            draggable,
+            rotation_style,
+            is_stage: false,
+        }
     }
 }
 

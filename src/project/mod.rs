@@ -15,6 +15,9 @@ use rs_sb3::{
 use crate::uid::Uid;
 use target_builder::{SpriteBuilder, StageBuilder};
 
+use self::file_manager::{File, ProjectFileBuilder};
+
+pub mod file_manager;
 pub mod target_builder;
 
 #[rustfmt::skip]
@@ -43,7 +46,7 @@ impl ProjectBuilder {
 }
 
 impl ProjectBuilder {
-    pub fn build(self) -> Project {
+    pub fn build(self, file_buff: &mut Vec<File>) -> Project {
         let ProjectBuilder {
             stage_builder,
             sprite_builders,
@@ -51,8 +54,12 @@ impl ProjectBuilder {
             meta,
         } = self;
         let mut targets = Vec::with_capacity(1 + sprite_builders.len());
-        targets.push(SpriteOrStage::Stage(stage_builder.build());
-        targets.extend(sprite_builders.into_iter().map(|sprite_builder| sprite_builder.build()))
+        targets.push(SpriteOrStage::Stage(stage_builder.build(file_buff)));
+        targets.extend(
+            sprite_builders
+                .into_iter()
+                .map(|sprite_builder| SpriteOrStage::Sprite(sprite_builder.build(file_buff))),
+        );
         Project {
             meta,
             extensions: serde_json::value::Value::Array(vec![]),
@@ -71,7 +78,7 @@ impl Default for ProjectBuilder {
             monitors:        Vec::default(),
             meta: Meta {
                 semver: "3.0.0".to_owned(),
-                vm:     "It ain't a vm, my guy.".to_owned(),
+                vm:     "0.2.0-prerelease.20220222132735".to_owned(),
                 agent:  "mcscratchy/0.1.0".to_owned(),
             },
         }

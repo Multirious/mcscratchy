@@ -180,9 +180,9 @@ impl BlockBuilder {
         }
         let comment = match comment {
             Some(comment) => {
-                let (comment, comment_uid) = comment.build();
+                let (mut comment, comment_uid) = comment.build();
                 comment.block_id = Some(my_uid.clone().into_inner());
-                comment_buff.insert(comment_uid, comment);
+                comment_buff.insert(comment_uid.clone(), comment);
                 Some(comment_uid.into_inner())
             }
             None => None,
@@ -244,7 +244,7 @@ impl StackBuilder {
         let mut previous_block = Some((first_block, first_block_uid.clone()));
         for block_builder2 in self_stack_iter {
             let (mut block1, block1_uid) = previous_block.take().unwrap();
-            let (mut block2, block2_uid) = block_builder2.build(&mut comment_buff, &mut stack_b);
+            let (mut block2, block2_uid) = block_builder2.build(comment_buff, &mut stack_b);
 
             block1.next = Some(block2_uid.clone().into_inner());
             block2.parent = Some(block1_uid.clone().into_inner());
