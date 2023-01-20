@@ -9,6 +9,7 @@ use rs_sb3::{
     block::{
         Block, BlockField, BlockInput, BlockInputValue, BlockMutation, IdOrValue, ShadowInputType,
     },
+    comment::Comment,
     string_hashmap::StringHashMap,
     value::OpCode,
 };
@@ -49,13 +50,13 @@ impl BlockInputBuilder {
     }
 
     /// Requires:
-    /// - target: To continue building into [`StackBuilder`]
+    /// - comment_buff: To continue building into [`StackBuilder`]
     ///
     /// Returns:
     /// - [`BlockInput`]: The built [`BlockInput`]
     pub fn build(
         self,
-        target: &mut TargetBuilder,
+        comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
         uid_of_this_block: &Uid,
     ) -> BlockInput {
@@ -66,7 +67,7 @@ impl BlockInputBuilder {
                 Some(v) => match v {
                     StackOrValue::Value(v) => values_b.push(Some(IdOrValue::Value(v))),
                     StackOrValue::Stack(s) => {
-                        let (mut s_builded, first_block_uid) = s.build(target);
+                        let (mut s_builded, first_block_uid) = s.build(comment_buff);
                         let first_block = s_builded.get_mut(&first_block_uid).unwrap();
                         first_block.parent = Some(uid_of_this_block.clone().into_inner());
                         first_block.top_level = false;
@@ -153,7 +154,7 @@ impl BlockBuilder {
     }
 
     /// Requires:
-    /// - target: To continue building into [`BlockInputBuilder`] and add comment to the target's comment list
+    /// - comment_buff: To continue building into [`BlockInputBuilder`] and add comment to it
     /// - final_stack: To continue building into [`BlockInputBuilder`]
     ///
     /// Returns:
@@ -161,7 +162,7 @@ impl BlockBuilder {
     /// - [`Uid`]: [`Uid`] of the built block
     fn build(
         self,
-        target: &mut TargetBuilder,
+        comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
     ) -> (Block, Uid) {
         let BlockBuilder {
@@ -175,13 +176,13 @@ impl BlockBuilder {
         let my_uid = Uid::generate();
         let mut inputs_b: HashMap<String, BlockInput> = HashMap::default();
         for (key, input) in inputs {
-            inputs_b.insert(key, input.build(target, final_stack, &my_uid));
+            inputs_b.insert(key, input.build(comment_buff, final_stack, &my_uid));
         }
         let comment = match comment {
             Some(comment) => {
                 let (comment, comment_uid) = comment.build();
                 comment.block_id = Some(my_uid.clone().into_inner());
-                target.add_comment_with_uid(comment_uid, comment);
+                comment_buff.insert(comment_uid, comment);
                 Some(comment_uid.into_inner())
             }
             None => None,
@@ -230,18 +231,20 @@ impl StackBuilder {
     /// Returns:
     /// - [`HashMap`]<Uid, Block>: The built stack
     /// - [`Uid`]: Uid of the first block on the stack
-    pub fn build(self, target: &mut TargetBuilder) -> (HashMap<Uid, Block>, Uid) {
+    pub fn build(self, comment_buff: &mut HashMap<Uid, Comment>) -> (HashMap<Uid, Block>, Uid) {
         let mut stack_b: HashMap<Uid, Block> = HashMap::default();
         let mut self_stack_iter = self.stack.into_iter();
-        let (mut first_block, first_block_uid) =
-            self_stack_iter.next().unwrap().build(target, &mut stack_b);
+        let (mut first_block, first_block_uid) = self_stack_iter
+            .next()
+            .unwrap()
+            .build(comment_buff, &mut stack_b);
         first_block.top_level = true;
         first_block.x = Some(0.into());
         first_block.y = Some(0.into());
         let mut previous_block = Some((first_block, first_block_uid.clone()));
         for block_builder2 in self_stack_iter {
             let (mut block1, block1_uid) = previous_block.take().unwrap();
-            let (mut block2, block2_uid) = block_builder2.build(target, &mut stack_b);
+            let (mut block2, block2_uid) = block_builder2.build(&mut comment_buff, &mut stack_b);
 
             block1.next = Some(block2_uid.clone().into_inner());
             block2.parent = Some(block1_uid.clone().into_inner());

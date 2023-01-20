@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use rs_sb3::value::Value;
+use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 
 use crate::scripting::script_builder::StackBuilder;
 
@@ -28,6 +28,20 @@ impl VariableBuilder {
             is_cloud_variable: true,
         }
     }
+
+    pub fn build(self, name_for_this_var: String) -> (Variable, Uid) {
+        let VariableBuilder {
+            value,
+            is_cloud_variable,
+        } = self;
+        let my_uid = Uid::generate();
+        let var = Variable {
+            name: name_for_this_var,
+            value,
+            is_cloud_variable,
+        };
+        (var, my_uid)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +52,16 @@ pub struct ListBuilder {
 impl ListBuilder {
     pub fn new(values: Vec<Value>) -> ListBuilder {
         ListBuilder { values }
+    }
+
+    pub fn build(self, name_for_this_list: String) -> (List, Uid) {
+        let ListBuilder { values } = self;
+        let my_uid = Uid::generate();
+        let list = List {
+            name: name_for_this_list,
+            values,
+        };
+        (list, my_uid)
     }
 }
 
@@ -176,11 +200,6 @@ impl TargetBuilder {
         self
     }
 
-    pub(crate) fn add_comment_with_uid(mut self, uid: Uid, comment: Comment) -> Self {
-        self.comments.insert(uid, comment);
-        self
-    }
-
     pub fn add_costume(mut self, costume_builder: CostumeBuilder) -> Self {
         self.costumes.push(costume_builder);
         self
@@ -201,9 +220,81 @@ impl TargetBuilder {
         self
     }
 
-    // pub fn build(self) -> Target {
-
-    // }
+    pub fn build(self) -> Target {
+        let TargetBuilder {
+            name,
+            variables,
+            lists,
+            broadcasts,
+            block_stackes,
+            comments,
+            costumes,
+            sounds,
+            current_costume,
+            layer_order,
+            volume,
+        } = self;
+        let variables: HashMap<String, Variable> = variables
+            .into_iter()
+            .map(|(var_name, var_builder)| {
+                let (var, uid) = var_builder.build(var_name);
+                (uid.into_inner(), var)
+            })
+            .collect();
+        let lists: HashMap<String, List> = lists
+            .into_iter()
+            .map(|(list_name, list_builder)| {
+                let (list, uid) = list_builder.build(list_name);
+                (uid.into_inner(), list)
+            })
+            .collect();
+        let broadcasts: HashMap<String, Broadcast> = broadcasts
+            .into_iter()
+            .map(|broadcast_name| {
+                (
+                    Uid::generate().into_inner(),
+                    Broadcast {
+                        name: broadcast_name,
+                    },
+                )
+            })
+            .collect();
+        let mut comments = comments;
+        let blocks: HashMap<String, Block> = block_stackes
+            .into_iter()
+            .flat_map(|stack_builder| {
+                let (builded_stack, _first_block) = stack_builder.build(&mut comments);
+                builded_stack
+                    .into_iter()
+                    .map(|(uid, block)| (uid.into_inner(), block))
+            })
+            .collect();
+        let comments: HashMap<String, Comment> = comments
+            .into_iter()
+            .map(|(uid, comment)| (uid.into_inner(), comment))
+            .collect();
+        let costumes: Vec<Costume> = costumes
+            .into_iter()
+            .map(|costume_builder| costume_builder.build())
+            .collect();
+        let sounds: Vec<Sound> = sounds
+            .into_iter()
+            .map(|sound_builder| sound_builder.build())
+            .collect();
+        Target {
+            name,
+            variables: StringHashMap(variables),
+            lists: StringHashMap(lists),
+            broadcasts: StringHashMap(broadcasts),
+            blocks: StringHashMap(blocks),
+            comments: StringHashMap(comments),
+            current_costume: current_costume as i64,
+            costumes,
+            sounds,
+            layer_order: layer_order as i64,
+            volume: volume.into(),
+        }
+    }
 }
 
 impl Default for TargetBuilder {
@@ -233,6 +324,22 @@ pub struct CostumeBuilder {
     asset: AssetBuilder,
 }
 
+impl CostumeBuilder {
+    pub fn build(self) -> Costume {
+        let CostumeBuilder {
+            rotation_center_x,
+            rotation_center_y,
+            asset,
+        } = self;
+        Costume {
+            rotation_center_x: rotation_center_x.into(),
+            rotation_center_y: rotation_center_y.into(),
+            bitmap_resolution: None,
+            asset: asset.build(),
+        }
+    }
+}
+
 /// Not really sure what to do here yet
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SoundBuilder {
@@ -242,6 +349,23 @@ pub struct SoundBuilder {
     asset: AssetBuilder,
 }
 
+impl SoundBuilder {
+    pub fn build(self) -> Sound {
+        let SoundBuilder {
+            rate,
+            sample_count,
+            format,
+            asset,
+        } = self;
+        Sound {
+            rate,
+            sample_count,
+            format,
+            asset: asset.build(),
+        }
+    }
+}
+
 /// Not really sure what to do here yet
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetBuilder {
@@ -249,6 +373,23 @@ pub struct AssetBuilder {
     name: String,
     md5ext: Option<String>,
     data_format: String,
+}
+
+impl AssetBuilder {
+    pub fn build(self) -> Asset {
+        let AssetBuilder {
+            asset_id,
+            name,
+            md5ext,
+            data_format,
+        } = self;
+        Asset {
+            asset_id: asset_id.into_inner(),
+            name,
+            md5ext,
+            data_format,
+        }
+    }
 }
 
 #[rustfmt::skip]
@@ -284,6 +425,24 @@ impl StageBuilder {
     pub fn video_state(mut self, video_state: VideoState) -> Self {
         self.video_state = video_state;
         self
+    }
+
+    pub fn build(self) -> Stage {
+        let StageBuilder {
+            target,
+            tempo,
+            video_state,
+            video_transparency,
+            text_to_speech_language,
+        } = self;
+        Stage {
+            target: target.build(),
+            tempo: tempo.into(),
+            video_state,
+            video_transparency: video_transparency.into(),
+            text_to_speech_language: None,
+            is_stage: true,
+        }
     }
 }
 

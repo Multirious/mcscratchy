@@ -8,11 +8,12 @@ use rs_sb3::{
     list::List,
     monitor::Monitor,
     project::{Meta, Project},
-    target::{RotationStyle, Sprite, Stage, Target, VideoState},
+    target::{RotationStyle, Sprite, SpriteOrStage, Stage, Target, VideoState},
     variable::Variable,
 };
 
 use crate::uid::Uid;
+use target_builder::{SpriteBuilder, StageBuilder};
 
 pub mod target_builder;
 
@@ -26,6 +27,10 @@ pub struct ProjectBuilder {
 }
 
 impl ProjectBuilder {
+    pub fn new() -> ProjectBuilder {
+        ProjectBuilder::default()
+    }
+
     pub fn set_stage(mut self, stage_builder: StageBuilder) -> Self {
         self.stage_builder = stage_builder;
         self
@@ -34,6 +39,26 @@ impl ProjectBuilder {
     pub fn add_sprite(mut self, sprite_builder: SpriteBuilder) -> Self {
         self.sprite_builders.push(sprite_builder);
         self
+    }
+}
+
+impl ProjectBuilder {
+    pub fn build(self) -> Project {
+        let ProjectBuilder {
+            stage_builder,
+            sprite_builders,
+            monitors,
+            meta,
+        } = self;
+        let mut targets = Vec::with_capacity(1 + sprite_builders.len());
+        targets.push(SpriteOrStage::Stage(stage_builder.build());
+        targets.extend(sprite_builders.into_iter().map(|sprite_builder| sprite_builder.build()))
+        Project {
+            meta,
+            extensions: serde_json::value::Value::Array(vec![]),
+            monitors,
+            targets,
+        }
     }
 }
 
