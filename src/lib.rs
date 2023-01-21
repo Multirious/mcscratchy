@@ -29,18 +29,23 @@ mod test {
                 TargetBuilder::new("Stage")
                     .add_costume(CostumeBuilder::new(AssetBuilder::new(
                         "backdrop1",
-                        File::load("blank.svg").unwrap().verify().unwrap(),
+                        File::load_and_verify("blank.svg").unwrap().unwrap(),
                     )))
                     .add_comment(CommentBuilder::new("hi")),
             ))
             .add_sprite(SpriteBuilder::new(
                 TargetBuilder::new("Cat")
-                    .add_block_stacks(when_flag_clicked().next(move_steps(5)))
+                    .add_block_stacks(when_flag_clicked().next(goto(goto_menu("_random_"))))
                     .add_costume(CostumeBuilder::new(AssetBuilder::new(
                         "costume1",
-                        File::load("cat.svg").unwrap().verify().unwrap(),
-                    ))),
+                        File::load_and_verify("cat.svg").unwrap().unwrap(),
+                    )))
+                    .layer_order(1),
             ));
-        ProjectFileBuilder::new(project).build().unwrap();
+        ProjectFileBuilder::new(project)
+            .name("McScratch Project")
+            .path("C:\\Users\\USER\\OneDrive\\Desktop\\")
+            .build()
+            .unwrap();
     }
 }

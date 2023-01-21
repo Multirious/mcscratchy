@@ -348,7 +348,7 @@ impl CostumeBuilder {
         Costume {
             rotation_center_x: rotation_center_x.into(),
             rotation_center_y: rotation_center_y.into(),
-            bitmap_resolution: None,
+            bitmap_resolution: Some(1),
             asset: asset.build(file_buff),
         }
     }

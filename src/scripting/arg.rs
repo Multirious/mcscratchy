@@ -37,6 +37,10 @@ pub trait IntoStackArg {
     fn into_stack_arg(self) -> StackBuilder;
 }
 
+pub trait IntoFieldArg {
+    fn into_field_arg(self) -> String;
+}
+
 impl<T> IntoArg<T> for Arg {
     fn into_arg(self) -> Arg {
         self
@@ -89,5 +93,17 @@ impl IntoArg<Value> for &str {
         Arg::Value(BlockInputValue::Number {
             value: self.to_owned().into(),
         })
+    }
+}
+
+impl IntoFieldArg for &str {
+    fn into_field_arg(self) -> String {
+        self.to_string()
+    }
+}
+
+impl IntoFieldArg for String {
+    fn into_field_arg(self) -> String {
+        self
     }
 }

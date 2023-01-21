@@ -62,6 +62,11 @@ impl<S, E> TypedStackBuilder<S, E> {
             end: PhantomData,
         }
     }
+
+    pub fn move_head(mut self, x: f64, y: f64) -> Self {
+        self.stack_builder.ref_move_head(x, y);
+        self
+    }
 }
 
 impl<S> TypedStackBuilder<S, StackableSide> {

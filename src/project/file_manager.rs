@@ -1,6 +1,6 @@
 use std::ffi::{OsStr, OsString};
 use std::fs::File as FsFile;
-use std::io::{Read, Result as IoResult, Write};
+use std::io::{Error as IoError, Read, Result as IoResult, Write};
 use std::path::{Path, PathBuf};
 
 use rs_sb3::project::Project;
@@ -22,7 +22,7 @@ impl std::fmt::Display for VerificationError {
 
 #[derive(Debug)]
 pub enum BuildError {
-    Io(std::io::Error),
+    Io(IoError),
     Zip(zip::result::ZipError),
 }
 
@@ -77,6 +77,12 @@ impl File {
             file: self,
         })
     }
+
+    pub fn load_and_verify<P: AsRef<Path>>(
+        path: P,
+    ) -> Result<Result<ValidFile, VerificationError>, IoError> {
+        Self::load(path).map(|ok| ok.verify())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,7 +136,8 @@ impl ProjectFileBuilder {
         let project = project.build(&mut file_buff);
         let mut zip_file = FsFile::options()
             .write(true)
-            .create_new(true)
+            .create(true)
+            .truncate(true)
             .open(directory.join(project_name.with_extension("sb3")))?;
         let mut zip = zip::ZipWriter::new(&mut zip_file);
         for asset_file in file_buff {

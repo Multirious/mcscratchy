@@ -93,9 +93,11 @@ pub struct BlockBuilder {
     opcode: OpCode,
     comment: Option<CommentBuilder>,
     inputs: HashMap<String, BlockInputBuilder>,
-    fields: HashMap<String, BlockField>,
+    fields: HashMap<String, BlockFieldBuilder>,
     mutation: Option<BlockMutation>,
     shadow: bool,
+    x: Option<f64>,
+    y: Option<f64>,
 }
 
 impl BlockBuilder {
@@ -138,8 +140,12 @@ impl BlockBuilder {
         self
     }
 
-    pub fn add_field<S: Into<String>>(mut self, key: S, block_field: BlockField) -> Self {
-        self.fields.insert(key.into(), block_field);
+    pub fn add_field<S: Into<String>>(
+        mut self,
+        key: S,
+        block_field_builder: BlockFieldBuilder,
+    ) -> Self {
+        self.fields.insert(key.into(), block_field_builder);
         self
     }
 
@@ -150,6 +156,18 @@ impl BlockBuilder {
 
     pub fn comment(mut self, comment_builder: CommentBuilder) -> Self {
         self.comment = Some(comment_builder);
+        self
+    }
+
+    pub fn pos(mut self, x: f64, y: f64) -> Self {
+        self.x = Some(x);
+        self.y = Some(y);
+        self
+    }
+
+    pub fn ref_pos(&mut self, x: f64, y: f64) -> &mut Self {
+        self.x = Some(x);
+        self.y = Some(y);
         self
     }
 
@@ -172,12 +190,22 @@ impl BlockBuilder {
             fields,
             shadow,
             mutation,
+            x,
+            y,
         } = self;
         let my_uid = Uid::generate();
-        let mut inputs_b: HashMap<String, BlockInput> = HashMap::default();
-        for (key, input) in inputs {
-            inputs_b.insert(key, input.build(comment_buff, final_stack, &my_uid));
-        }
+        // let mut inputs_b: HashMap<String, BlockInput> = HashMap::default();
+        // for (key, input) in inputs {
+        //     inputs_b.insert(key, input.build(comment_buff, final_stack, &my_uid));
+        // }
+        let inputs: HashMap<String, BlockInput> = inputs
+            .into_iter()
+            .map(|(key, input)| (key, input.build(comment_buff, final_stack, &my_uid)))
+            .collect();
+        let fields: HashMap<String, BlockField> = fields
+            .into_iter()
+            .map(|(key, field)| (key, field.build()))
+            .collect();
         let comment = match comment {
             Some(comment) => {
                 let (mut comment, comment_uid) = comment.build();
@@ -192,15 +220,46 @@ impl BlockBuilder {
             comment,
             next: None,
             parent: None,
-            inputs: StringHashMap(inputs_b),
+            inputs: StringHashMap(inputs),
             fields: StringHashMap(fields),
             shadow,
             top_level: false,
             mutation,
-            x: None,
-            y: None,
+            x: x.map(|x| x.into()),
+            y: y.map(|y| y.into()),
         };
         (block_b, my_uid)
+    }
+}
+
+#[derive(Debug, Default, Clone, PartialEq)]
+pub struct BlockFieldBuilder {
+    value: String,
+    id: Option<Option<Uid>>,
+}
+
+impl BlockFieldBuilder {
+    pub fn new_with_id(value: String, id: Option<Uid>) -> BlockFieldBuilder {
+        BlockFieldBuilder {
+            value,
+            id: Some(id),
+        }
+    }
+
+    pub fn new(value: String) -> BlockFieldBuilder {
+        BlockFieldBuilder { value, id: None }
+    }
+
+    pub fn build(self) -> BlockField {
+        let BlockFieldBuilder { value, id } = self;
+        let value = value.into();
+        match id {
+            Some(id) => BlockField::WithId {
+                value,
+                id: id.map(|id| id.into_inner()),
+            },
+            None => BlockField::NoId { value },
+        }
     }
 }
 
@@ -222,6 +281,16 @@ impl StackBuilder {
 
     pub fn next(mut self, mut next_stack: StackBuilder) -> StackBuilder {
         self.stack.append(&mut next_stack.stack);
+        self
+    }
+
+    pub fn move_head(mut self, x: f64, y: f64) -> Self {
+        self.stack[0].ref_pos(x, y);
+        self
+    }
+
+    pub fn ref_move_head(&mut self, x: f64, y: f64) -> &mut Self {
+        self.stack[0].ref_pos(x, y);
         self
     }
 
