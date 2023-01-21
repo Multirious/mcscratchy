@@ -46,30 +46,30 @@ impl From<zip::result::ZipError> for BuildError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct File {
+pub struct Resource {
     pub(crate) path: PathBuf,
     pub(crate) content: Vec<u8>,
 }
 
-impl File {
-    pub fn load<P: AsRef<Path>>(path: P) -> IoResult<File> {
+impl Resource {
+    pub fn load<P: AsRef<Path>>(path: P) -> IoResult<Resource> {
         let mut file = FsFile::options().read(true).open(&path)?;
         let mut buf = vec![];
         file.read_to_end(&mut buf)?;
-        let file = File {
+        let file = Resource {
             path: path.as_ref().to_path_buf(),
             content: buf,
         };
         Ok(file)
     }
 
-    pub fn verify(self) -> Result<ValidFile, VerificationError> {
+    pub fn verify(self) -> Result<ValidResource, VerificationError> {
         let extension = self
             .path
             .extension()
             .ok_or(VerificationError::InvalidFileExtension)?
             .to_string_lossy();
-        Ok(ValidFile {
+        Ok(ValidResource {
             extension: extension.into_owned(),
             file: self,
         })
@@ -77,18 +77,18 @@ impl File {
 
     pub fn load_and_verify<P: AsRef<Path>>(
         path: P,
-    ) -> Result<Result<ValidFile, VerificationError>, IoError> {
+    ) -> Result<Result<ValidResource, VerificationError>, IoError> {
         Self::load(path).map(|ok| ok.verify())
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidFile {
+pub struct ValidResource {
     pub(crate) extension: String,
-    pub(crate) file: File,
+    pub(crate) file: Resource,
 }
 
-impl ValidFile {
+impl ValidResource {
     pub fn md5_hash(&self) -> [u8; 16] {
         md5::compute(&self.file.content).0
     }
@@ -138,7 +138,7 @@ impl ProjectFileBuilder {
             .open(directory.join(project_name.with_extension("sb3")))?;
         let mut zip = zip::ZipWriter::new(&mut zip_file);
         for asset_file in file_buff {
-            let File { path, content } = asset_file;
+            let Resource { path, content } = asset_file;
             zip.start_file(
                 path.to_str().unwrap(),
                 zip::write::FileOptions::default()

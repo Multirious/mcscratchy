@@ -1,7 +1,4 @@
-use crate::opcode::PrimaryOpCode;
-
-#[allow(unused)]
-use super::{arg::*, script_builder::BlockBuilder, typed_script_builder::*};
+use super::*;
 
 /// The script start when then green flag is clicked
 pub fn when_flag_clicked() -> HatBlock {

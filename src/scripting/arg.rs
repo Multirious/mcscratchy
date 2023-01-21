@@ -1,8 +1,9 @@
 use rs_sb3::block::BlockInputValue;
 
-use crate::derive_everything;
+use crate::{derive_everything, uid::Uid};
 
 use super::{
+    script_builder::BlockFieldBuilder,
     script_builder::StackBuilder,
     typed_script_builder::{Reporter, StackableSide, TypedStackBuilder},
 };
@@ -38,7 +39,8 @@ pub trait IntoStackArg {
 }
 
 pub trait IntoFieldArg {
-    fn into_field_arg(self) -> String;
+    fn into_field_arg(self) -> BlockFieldBuilder;
+    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder;
 }
 
 impl<T> IntoArg<T> for Arg {
@@ -97,13 +99,21 @@ impl IntoArg<Value> for &str {
 }
 
 impl IntoFieldArg for &str {
-    fn into_field_arg(self) -> String {
-        self.to_string()
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new(self.into())
+    }
+
+    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_id(self.into(), id)
     }
 }
 
 impl IntoFieldArg for String {
-    fn into_field_arg(self) -> String {
-        self
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new(self)
+    }
+
+    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_id(self, id)
     }
 }

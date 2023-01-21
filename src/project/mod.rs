@@ -15,9 +15,9 @@ use rs_sb3::{
 use crate::uid::Uid;
 use target_builder::{SpriteBuilder, StageBuilder};
 
-use self::file_manager::{File};
+use self::resource::Resource;
 
-pub mod file_manager;
+pub mod resource;
 pub mod target_builder;
 
 #[rustfmt::skip]
@@ -46,7 +46,7 @@ impl ProjectBuilder {
 }
 
 impl ProjectBuilder {
-    pub fn build(self, file_buff: &mut Vec<File>) -> Project {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Project {
         let ProjectBuilder {
             stage_builder,
             sprite_builders,

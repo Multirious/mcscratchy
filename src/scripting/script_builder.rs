@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use super::{arg::Arg, typed_script_builder::TypedStackBuilder};
-use crate::{
-    project::target_builder::{CommentBuilder},
-    uid::Uid,
-};
+use crate::{project::target_builder::CommentBuilder, uid::Uid};
 use rs_sb3::{
     block::{
         Block, BlockField, BlockInput, BlockInputValue, BlockMutation, IdOrValue, ShadowInputType,

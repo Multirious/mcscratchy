@@ -5,7 +5,7 @@ use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 use crate::scripting::script_builder::StackBuilder;
 
 use super::*;
-use file_manager::{File, ValidFile};
+use resource::{Resource, ValidResource};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VariableBuilder {
@@ -221,7 +221,7 @@ impl TargetBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<File>) -> Target {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Target {
         let TargetBuilder {
             name,
             variables,
@@ -339,7 +339,7 @@ impl CostumeBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<File>) -> Costume {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Costume {
         let CostumeBuilder {
             rotation_center_x,
             rotation_center_y,
@@ -364,7 +364,7 @@ pub struct SoundBuilder {
 }
 
 impl SoundBuilder {
-    pub fn build(self, file_buff: &mut Vec<File>) -> Sound {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Sound {
         let SoundBuilder {
             rate,
             sample_count,
@@ -384,20 +384,20 @@ impl SoundBuilder {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetBuilder {
     name: String,
-    file: ValidFile,
+    file: ValidResource,
 }
 
 impl AssetBuilder {
-    pub fn new<S: Into<String>>(name: S, file: ValidFile) -> AssetBuilder {
+    pub fn new<S: Into<String>>(name: S, file: ValidResource) -> AssetBuilder {
         AssetBuilder {
             name: name.into(),
             file,
         }
     }
 
-    pub fn build(self, file_buff: &mut Vec<File>) -> Asset {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Asset {
         let AssetBuilder { name, file } = self;
-        let md5_hash = file_manager::hex(&file.md5_hash());
+        let md5_hash = resource::hex(&file.md5_hash());
         let extension = file.extension;
         let asset = Asset {
             asset_id: md5_hash.clone(),
@@ -406,7 +406,7 @@ impl AssetBuilder {
             data_format: extension.clone(),
         };
         let md5_path: std::path::PathBuf = md5_hash.into();
-        file_buff.push(File {
+        file_buff.push(Resource {
             path: md5_path.with_extension(extension),
             content: file.file.content,
         });
@@ -449,7 +449,7 @@ impl StageBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<File>) -> Stage {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Stage {
         let StageBuilder {
             target,
             tempo,
@@ -533,7 +533,7 @@ impl SpriteBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<File>) -> Sprite {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> Sprite {
         let SpriteBuilder {
             target,
             visible,
