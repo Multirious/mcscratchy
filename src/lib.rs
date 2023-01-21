@@ -19,7 +19,7 @@ mod test {
 
     use super::{
         project::{target_builder::*, ProjectBuilder},
-        scripting::{control::*, event::*, motion::*, operator::*},
+        scripting::{event::*, motion::*},
     };
 
     #[test]

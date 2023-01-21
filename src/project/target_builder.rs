@@ -455,7 +455,7 @@ impl StageBuilder {
             tempo,
             video_state,
             video_transparency,
-            text_to_speech_language,
+            text_to_speech_language: _,
         } = self;
         Stage {
             target: target.build(file_buff),

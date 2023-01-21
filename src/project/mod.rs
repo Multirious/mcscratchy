@@ -15,7 +15,7 @@ use rs_sb3::{
 use crate::uid::Uid;
 use target_builder::{SpriteBuilder, StageBuilder};
 
-use self::file_manager::{File, ProjectFileBuilder};
+use self::file_manager::{File};
 
 pub mod file_manager;
 pub mod target_builder;

@@ -1,9 +1,6 @@
-use std::ffi::{OsStr, OsString};
 use std::fs::File as FsFile;
 use std::io::{Error as IoError, Read, Result as IoResult, Write};
 use std::path::{Path, PathBuf};
-
-use rs_sb3::project::Project;
 
 use super::ProjectBuilder;
 
@@ -16,7 +13,7 @@ impl std::error::Error for VerificationError {}
 
 impl std::fmt::Display for VerificationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self)
+        write!(f, "{self:#?}")
     }
 }
 
@@ -31,8 +28,8 @@ impl std::error::Error for BuildError {}
 impl std::fmt::Display for BuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BuildError::Io(io) => write!(f, "{}", io),
-            BuildError::Zip(zip) => write!(f, "{}", zip),
+            BuildError::Io(io) => write!(f, "{io}"),
+            BuildError::Zip(zip) => write!(f, "{zip}"),
         }
     }
 }
@@ -147,7 +144,7 @@ impl ProjectFileBuilder {
                 zip::write::FileOptions::default()
                     .compression_method(zip::CompressionMethod::Deflated),
             )?;
-            zip.write(&content)?;
+            let _written = zip.write(&content)?;
         }
         zip.start_file(
             PathBuf::from("project")
@@ -156,7 +153,7 @@ impl ProjectFileBuilder {
                 .unwrap(),
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated),
         )?;
-        zip.write(&serde_json::to_string_pretty(&project).unwrap().into_bytes())?;
+        let _written = zip.write(&serde_json::to_string_pretty(&project).unwrap().into_bytes())?;
         zip.finish()?;
         Ok(())
     }
