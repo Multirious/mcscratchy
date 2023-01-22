@@ -12,7 +12,9 @@ pub(self) use crate::opcode::PrimaryOpCode;
 
 pub mod control;
 pub mod event;
+pub mod looks;
 pub mod motion;
 pub mod operator;
+pub mod sound;
 
 pub use {control::*, event::*, motion::*, operator::*};

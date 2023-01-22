@@ -27,6 +27,7 @@ pub type JustReporter<T> = Reporter<T, UnstackableSide, UnstackableSide>;
 pub type HatBlock = TypedStackBuilder<UnstackableSide, StackableSide>;
 pub type CapBlock = TypedStackBuilder<StackableSide, UnstackableSide>;
 pub type StackBlock = TypedStackBuilder<StackableSide, StackableSide>;
+pub type MenuReporter = JustReporter<super::arg::Text>;
 
 /// Build **1** stack of scratch block
 /// The generic S is type of side of the starting block.

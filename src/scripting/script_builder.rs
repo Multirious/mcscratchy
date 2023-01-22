@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use super::{arg::Arg, typed_script_builder::TypedStackBuilder};
+use super::{
+    arg::{Arg, IntoArg, IntoStackArg},
+    typed_script_builder::TypedStackBuilder,
+};
 use crate::{project::target_builder::CommentBuilder, uid::Uid};
 use rs_sb3::{
     block::{
@@ -128,6 +131,10 @@ impl BlockBuilder {
         }
     }
 
+    pub fn add_input_into_arg<K: Into<String>, A: IntoArg<AT>, AT>(self, key: K, arg: A) -> Self {
+        self.add_input_arg(key, arg.into_arg())
+    }
+
     pub fn add_input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
         self.inputs.insert(
             key.into(),
@@ -135,6 +142,29 @@ impl BlockBuilder {
                 .input_some(StackOrValue::Stack(stack_builder)),
         );
         self
+    }
+
+    pub fn add_input_into_stack<K: Into<String>, S: IntoStackArg>(self, key: K, stack: S) -> Self {
+        self.add_input_stack(key, stack.into_stack_arg())
+    }
+
+    pub fn add_optional_input_stack<K: Into<String>>(
+        self,
+        key: K,
+        stack_builder: Option<StackBuilder>,
+    ) -> Self {
+        match stack_builder {
+            Some(stack_builder) => self.add_input_stack(key, stack_builder),
+            None => self,
+        }
+    }
+
+    pub fn add_optional_into_input_stack<K: Into<String>, IS: IntoStackArg>(
+        self,
+        key: K,
+        stack: Option<IS>,
+    ) -> Self {
+        self.add_optional_input_stack(key, stack.map(IntoStackArg::into_stack_arg))
     }
 
     pub fn add_field<S: Into<String>>(
@@ -165,6 +195,11 @@ impl BlockBuilder {
     pub fn ref_pos(&mut self, x: f64, y: f64) -> &mut Self {
         self.x = Some(x);
         self.y = Some(y);
+        self
+    }
+
+    pub fn mutation(mut self, mutation: BlockMutation) -> Self {
+        self.mutation = Some(mutation);
         self
     }
 

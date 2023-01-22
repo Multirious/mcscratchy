@@ -47,7 +47,7 @@ where
 ///  - Sprite name
 ///  - "_mouse_" go to mouse position
 ///  - "_random_" go to random position
-pub fn go_to_menu<To>(to: To) -> JustReporter<Text>
+pub fn go_to_menu<To>(to: To) -> MenuReporter
 where
     To: IntoFieldArg,
 {
@@ -92,7 +92,7 @@ where
 ///  - Sprite name
 ///  - "_mouse_" glide to mouse position
 ///  - "_random_" glide to random position
-pub fn glide_to_menu<To>(to: To) -> JustReporter<Text>
+pub fn glide_to_menu<To>(to: To) -> MenuReporter
 where
     To: IntoFieldArg,
 {
@@ -145,7 +145,7 @@ where
 /// Accepts:
 ///  - Sprite name
 ///  - "_mouse_" glide to mouse position
-pub fn point_towards_menu<Towards>(towards: Towards) -> StackBlock
+pub fn point_towards_menu<Towards>(towards: Towards) -> MenuReporter
 where
     Towards: IntoFieldArg,
 {
@@ -154,4 +154,71 @@ where
             .add_field("TOWARDS", towards.into_field_arg_with_id(None))
             .shadow(true),
     )
+    .into()
+}
+
+pub fn set_x<X>(x: X) -> StackBlock
+where
+    X: IntoArg<Number>,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_arg("X", x.into_arg()),
+    )
+}
+
+pub fn set_y<Y>(y: Y) -> StackBlock
+where
+    Y: IntoArg<Number>,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_arg("Y", y.into_arg()),
+    )
+}
+
+pub fn change_x_by<By>(by: By) -> StackBlock
+where
+    By: IntoArg<Number>,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::motion_changexby).add_input_arg("DX", by.into_arg()),
+    )
+}
+
+pub fn change_y_by<By>(by: By) -> StackBlock
+where
+    By: IntoArg<Number>,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::motion_changeyby).add_input_arg("DY", by.into_arg()),
+    )
+}
+
+pub fn if_on_edge_bounce() -> StackBlock {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_ifonedgebounce))
+}
+
+/// Accepts:
+///  - "left-right"
+///  - "don't rotate"
+///  - "all around"
+pub fn set_rotation_style<Style>(style: Style) -> StackBlock
+where
+    Style: IntoFieldArg,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::motion_setrotationstyle)
+            .add_field("STYLE", style.into_field_arg_with_id(None)),
+    )
+}
+
+pub fn direction() -> JustReporter<Number> {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_direction)).into()
+}
+
+pub fn y_position() -> JustReporter<Number> {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_yposition)).into()
+}
+
+pub fn x_position() -> JustReporter<Number> {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_xposition)).into()
 }
