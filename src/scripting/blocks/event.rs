@@ -13,9 +13,9 @@ pub fn when_flag_clicked() -> HatBlock {
 ///  - "down arrow"
 ///  - Number 0 - 9
 ///  - Letter a - z
-pub fn when_key_pressed<K>(key: K) -> HatBlock
+pub fn when_key_pressed<Key>(key: Key) -> HatBlock
 where
-    K: IntoFieldArg,
+    Key: IntoFieldArg,
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::event_whenkeypressed)
@@ -45,7 +45,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::event_whengreaterthan)
-            .add_input_arg("VALUE", value.into_arg())
+            .add_input_into_arg("VALUE", value)
             .add_field("WHENGREATERTHANMENU", variable.into_field_arg_with_id(None)),
     )
 }
@@ -83,7 +83,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::event_broadcast)
-            .add_input_arg("BROADCAST_INPUT", broadcast.into_arg()),
+            .add_input_into_arg("BROADCAST_INPUT", broadcast),
     )
 }
 
@@ -93,6 +93,6 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::event_broadcastandwait)
-            .add_input_arg("BROADCAST_INPUT", broadcast.into_arg()),
+            .add_input_into_arg("BROADCAST_INPUT", broadcast),
     )
 }

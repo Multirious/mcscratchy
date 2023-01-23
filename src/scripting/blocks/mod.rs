@@ -15,6 +15,7 @@ pub mod event;
 pub mod looks;
 pub mod motion;
 pub mod operator;
+pub mod sensing;
 pub mod sound;
 
 pub use {control::*, event::*, motion::*, operator::*};

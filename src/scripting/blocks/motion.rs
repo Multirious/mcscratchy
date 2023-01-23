@@ -5,7 +5,7 @@ where
     Steps: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_movesteps).add_input_arg("STEPS", steps.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_movesteps).add_input_into_arg("STEPS", steps),
     )
 }
 
@@ -14,8 +14,7 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnright)
-            .add_input_arg("DEGREES", degress.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_turnright).add_input_into_arg("DEGREES", degress),
     )
 }
 
@@ -24,8 +23,7 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnleft)
-            .add_input_arg("DEGREES", degress.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_turnleft).add_input_into_arg("DEGREES", degress),
     )
 }
 
@@ -38,7 +36,7 @@ where
     To: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_goto).add_input_arg("TO", to.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_goto).add_input_into_arg("TO", to),
     )
 }
 
@@ -66,8 +64,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::motion_gotoxy)
-            .add_input_arg("X", x.into_arg())
-            .add_input_arg("Y", y.into_arg()),
+            .add_input_into_arg("X", x)
+            .add_input_into_arg("Y", y),
     )
 }
 
@@ -82,8 +80,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::motion_gotoxy)
-            .add_input_arg("SECS", duration_secs.into_arg())
-            .add_input_arg("TO", to.into_arg()),
+            .add_input_into_arg("SECS", duration_secs)
+            .add_input_into_arg("TO", to),
     )
 }
 
@@ -112,9 +110,9 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::motion_glidesecstoxy)
-            .add_input_arg("SECS", dur.into_arg())
-            .add_input_arg("X", x.into_arg())
-            .add_input_arg("Y", y.into_arg()),
+            .add_input_into_arg("SECS", dur)
+            .add_input_into_arg("X", x)
+            .add_input_into_arg("Y", y),
     )
 }
 
@@ -124,7 +122,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::motion_pointindirection)
-            .add_input_arg("DIRECTION", direction.into_arg()),
+            .add_input_into_arg("DIRECTION", direction),
     )
 }
 
@@ -137,7 +135,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::motion_pointtowards)
-            .add_input_arg("TOWARDS", towards.into_arg()),
+            .add_input_into_arg("TOWARDS", towards),
     )
 }
 
@@ -162,7 +160,7 @@ where
     X: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_arg("X", x.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("X", x),
     )
 }
 
@@ -171,7 +169,7 @@ where
     Y: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_arg("Y", y.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("Y", y),
     )
 }
 
@@ -180,7 +178,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_changexby).add_input_arg("DX", by.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_changexby).add_input_into_arg("DX", by),
     )
 }
 
@@ -189,7 +187,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_changeyby).add_input_arg("DY", by.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::motion_changeyby).add_input_into_arg("DY", by),
     )
 }
 

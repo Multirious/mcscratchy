@@ -18,8 +18,9 @@ mod test {
     use rs_sb3::target::SpriteOrStage;
 
     use crate::project::resource::{ProjectFileBuilder, Resource};
-    use std::env::var;
     use std::fs::File;
+    use std::path::Path;
+    use std::{env::var, sync::mpsc::channel};
 
     use super::{
         project::{target_builder::*, ProjectBuilder},
@@ -57,28 +58,67 @@ mod test {
 
     #[test]
     fn import_script() {
-        let sprite_name = var("SPRITE_NAME").unwrap();
-        let import = var("IMPORT_PATH").unwrap();
-        let file = File::options().read(true).open(import).unwrap();
-        let mut zip_read = zip::read::ZipArchive::new(file).unwrap();
-        let json_zip = zip_read.by_name("project.json").unwrap();
-        let scratch_project: rs_sb3::project::Project = serde_json::from_reader(json_zip).unwrap();
-        let sprite = scratch_project
-            .targets
-            .into_iter()
-            .find_map(|target| {
-                if let SpriteOrStage::Sprite(sprite) = target {
-                    if sprite.target.name == sprite_name {
-                        Some(sprite)
+        use notify::Watcher;
+        use std::io::Write;
+
+        fn get_blocks<'a>(
+            project: &'a rs_sb3::project::Project,
+            sprite_name: &str,
+        ) -> &'a rs_sb3::string_hashmap::StringHashMap<rs_sb3::block::Block> {
+            let sprite = project
+                .targets
+                .iter()
+                .find_map(|target| {
+                    if let SpriteOrStage::Sprite(sprite) = target {
+                        if sprite.target.name == sprite_name {
+                            Some(sprite)
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
-                } else {
-                    None
-                }
-            })
+                })
+                .expect("finding sprite");
+            &sprite.target.blocks
+        }
+
+        let script_result_path = var("SCRIPT_RESULT_PATH").expect("SCRIPT_RESULT_PATH environment");
+        let import_path = var("IMPORT_PATH").expect("IMPORT_PATH environment");
+        let sprite_name = var("SPRITE_NAME").expect("SPRITE_NAME environment");
+        let (tx, rx) = channel();
+
+        let mut watcher = notify::RecommendedWatcher::new(tx, notify::Config::default()).unwrap();
+        watcher
+            .watch(Path::new(&import_path), notify::RecursiveMode::NonRecursive)
             .unwrap();
-        let to_print = sprite.target.blocks;
-        serde_json::to_writer_pretty(std::io::stdout(), &to_print).unwrap()
+
+        println!("start watching");
+        for res in rx {
+            match res {
+                Ok(event) => {
+                    if let notify::EventKind::Modify(_) = event.kind {
+                        let file = File::options().read(true).open(&import_path).unwrap();
+                        let mut zip_read = zip::read::ZipArchive::new(file).unwrap();
+                        let json_zip = zip_read.by_name("project.json").unwrap();
+
+                        let scratch_project: rs_sb3::project::Project =
+                            serde_json::from_reader(json_zip).unwrap();
+
+                        let to_print = get_blocks(&scratch_project, &sprite_name);
+                        let to_print = serde_json::to_string_pretty(&to_print).unwrap();
+
+                        let mut file = std::fs::File::options()
+                            .write(true)
+                            .truncate(true)
+                            .create(true)
+                            .open(&script_result_path)
+                            .unwrap();
+                        file.write(to_print.as_bytes()).unwrap();
+                    }
+                }
+                Err(e) => println!("{e}"),
+            }
+        }
     }
 }

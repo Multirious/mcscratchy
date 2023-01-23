@@ -7,9 +7,6 @@ pub fn wait<Secs>(duration: Secs) -> StackBlock
 where
     Secs: IntoArg<PositiveNumber>,
 {
-    asdfd
-    // we're converting add_input and others to use the add input into don't forget
-    // and after that we're add more blocks
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_wait).add_input_into_arg("DURATION", duration),
     )
@@ -44,7 +41,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_if)
-            .add_input_arg("CONDITION", condition.into_arg())
+            .add_input_into_arg("CONDITION", condition)
             .add_optional_input_stack("SUBSTACK", if_true.map(IntoStackArg::into_stack_arg)),
     )
 }
@@ -61,9 +58,9 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_if_else)
-            .add_input_arg("CONDITION", condition.into_arg())
-            .add_optional_input_stack("SUBSTACK", if_true.map(IntoStackArg::into_stack_arg))
-            .add_optional_input_stack("SUBSTACK2", if_false.map(IntoStackArg::into_stack_arg)),
+            .add_input_into_arg("CONDITION", condition)
+            .add_optional_into_input_stack("SUBSTACK", if_true)
+            .add_optional_into_input_stack("SUBSTACK2", if_false),
     )
 }
 
@@ -73,7 +70,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_wait_until)
-            .add_input_arg("CONDITION", condition.into_arg()),
+            .add_input_into_arg("CONDITION", condition),
     )
 }
 
@@ -84,8 +81,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_if_else)
-            .add_input_arg("CONDITION", condition.into_arg())
-            .add_optional_input_stack("SUBSTACK", to_repeat.map(IntoStackArg::into_stack_arg)),
+            .add_input_into_arg("CONDITION", condition)
+            .add_optional_into_input_stack("SUBSTACK", to_repeat),
     )
 }
 
@@ -120,7 +117,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_create_clone_of)
-            .add_input_arg("CLONE_OPTION", sprite.into_arg()),
+            .add_input_into_arg("CLONE_OPTION", sprite),
     )
 }
 

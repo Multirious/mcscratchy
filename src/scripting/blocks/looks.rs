@@ -16,8 +16,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_thinkforsecs)
-            .add_input_arg("MESSAGE", message.into_arg())
-            .add_input_arg("SECS", secs.into_arg()),
+            .add_input_into_arg("MESSAGE", message)
+            .add_input_into_arg("SECS", secs),
     )
 }
 
@@ -26,7 +26,7 @@ where
     Msg: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_say).add_input_arg("MESSAGE", message.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::looks_say).add_input_into_arg("MESSAGE", message),
     )
 }
 
@@ -37,8 +37,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_sayforsecs)
-            .add_input_arg("MESSAGE", message.into_arg())
-            .add_input_arg("SECS", secs.into_arg()),
+            .add_input_into_arg("MESSAGE", message)
+            .add_input_into_arg("SECS", secs),
     )
 }
 
@@ -50,7 +50,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_switchcostumeto)
-            .add_input_arg("COSTUME", costume.into_arg()),
+            .add_input_into_arg("COSTUME", costume),
     )
 }
 
@@ -81,7 +81,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_switchbackdropto)
-            .add_input_arg("BACKDROP", backdrop.into_arg()),
+            .add_input_into_arg("BACKDROP", backdrop),
     )
 }
 
@@ -109,7 +109,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_changesizeby).add_input_arg("CHANGE", by.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::looks_changesizeby).add_input_into_arg("CHANGE", by),
     )
 }
 
@@ -118,7 +118,7 @@ where
     To: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_setsizeto).add_input_arg("SIZE", to.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::looks_setsizeto).add_input_into_arg("SIZE", to),
     )
 }
 
@@ -137,7 +137,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_changeeffectby)
-            .add_input_arg("CHANGE", by.into_arg())
+            .add_input_into_arg("CHANGE", by)
             .add_field("EFFECT", effect.into_field_arg_with_id(None)),
     )
 }
@@ -157,7 +157,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_seteffectto)
-            .add_input_arg("TO", to.into_arg())
+            .add_input_into_arg("TO", to)
             .add_field("EFFECT", effect.into_field_arg_with_id(None)),
     )
 }
@@ -197,7 +197,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::looks_goforwardbackwardlayers)
-            .add_input_arg("NUM", by.into_arg())
+            .add_input_into_arg("NUM", by)
             .add_field("FORWARD_BACKWORD", layer.into_field_arg_with_id(None)),
     )
 }

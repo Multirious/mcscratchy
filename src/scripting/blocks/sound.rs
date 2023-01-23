@@ -8,7 +8,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::sound_playuntildone)
-            .add_input_arg("SOUND_MENU", sound.into_arg()),
+            .add_input_into_arg("SOUND_MENU", sound),
     )
 }
 
@@ -19,7 +19,7 @@ where
     Sound: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_play).add_input_arg("SOUND_MENU", sound.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::sound_play).add_input_into_arg("SOUND_MENU", sound),
     )
 }
 
@@ -52,7 +52,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::sound_changeeffectby)
-            .add_input_arg("VALUE", by.into_arg())
+            .add_input_into_arg("VALUE", by)
             .add_field("EFFECT", effect.into_field_arg()),
     )
 }
@@ -67,7 +67,7 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::sound_seteffectto)
-            .add_input_arg("VALUE", to.into_arg())
+            .add_input_into_arg("VALUE", to)
             .add_field("EFFECT", effect.into_field_arg()),
     )
 }
@@ -81,8 +81,7 @@ where
     Vol: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_setvolumeto)
-            .add_input_arg("VOLUME", volume.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::sound_setvolumeto).add_input_into_arg("VOLUME", volume),
     )
 }
 
@@ -91,8 +90,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_changeeffectby)
-            .add_input_arg("VOLUME", by.into_arg()),
+        BlockBuilder::new(PrimaryOpCode::sound_changeeffectby).add_input_into_arg("VOLUME", by),
     )
 }
 
