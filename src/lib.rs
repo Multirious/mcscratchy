@@ -97,7 +97,8 @@ mod test {
         for res in rx {
             match res {
                 Ok(event) => {
-                    if let notify::EventKind::Modify(_) = event.kind {
+                    println!("{event:?}");
+                    if let notify::EventKind::Create(_) = event.kind {
                         let file = File::options().read(true).open(&import_path).unwrap();
                         let mut zip_read = zip::read::ZipArchive::new(file).unwrap();
                         let json_zip = zip_read.by_name("project.json").unwrap();
@@ -117,7 +118,7 @@ mod test {
                         file.write(to_print.as_bytes()).unwrap();
                     }
                 }
-                Err(e) => println!("{e}"),
+                Err(e) => eprintln!("{e}"),
             }
         }
     }
