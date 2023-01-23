@@ -130,7 +130,8 @@ where
 {
     TypedStackBuilder::start(
         BlockBuilder::new(PrimaryOpCode::control_create_clone_of)
-            .add_field("CLONE_OPTION", sprite.into_field_arg_with_id(None)),
+            .add_field("CLONE_OPTION", sprite.into_field_arg_with_id(None))
+            .shadow(true),
     )
     .into()
 }

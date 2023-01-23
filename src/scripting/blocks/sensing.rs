@@ -207,11 +207,10 @@ where
     .into()
 }
 
-///
+/// Uses as argument to [`var_of`]
 /// `what` Accepts:
 ///   - Sprite name
 ///   - "_stage_"
-///
 pub fn var_of_object_menu<What>(what: What) -> MenuReporter
 where
     What: IntoFieldArg,
@@ -222,4 +221,31 @@ where
             .shadow(true),
     )
     .into()
+}
+
+/// Accepts:
+///  - "SECOND"
+///  - "MINUTE"
+///  - "HOUR"
+///  - "DAYOFWEEK"
+///  - "DATE"
+///  - "MONTH"
+///  - "YEAR"
+pub fn current_datetime<Fmt>(format: Fmt) -> JustReporter<PositiveInteger>
+where
+    Fmt: IntoFieldArg,
+{
+    TypedStackBuilder::start(
+        BlockBuilder::new(PrimaryOpCode::sensing_current)
+            .add_field("CURRENTMENU", format.into_field_arg_with_id(None)),
+    )
+    .into()
+}
+
+pub fn days_since_2000() -> JustReporter<Number> {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_dayssince2000)).into()
+}
+
+pub fn username() -> JustReporter<Text> {
+    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_username)).into()
 }
