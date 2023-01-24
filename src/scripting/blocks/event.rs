@@ -1,7 +1,9 @@
 use super::*;
 
 pub fn when_flag_clicked() -> HatBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::event_whenflagclicked))
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::event_whenflagclicked,
+    ))
 }
 
 /// Accepts:
@@ -18,7 +20,7 @@ where
     Key: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_whenkeypressed)
+        BlockNormalBuilder::new(PrimaryOpCode::event_whenkeypressed)
             .add_field("KEY_OPTION", key.into_field_arg_with_id(None)),
     )
 }
@@ -30,7 +32,7 @@ where
     BD: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_whenbackdropswitchesto)
+        BlockNormalBuilder::new(PrimaryOpCode::event_whenbackdropswitchesto)
             .add_field("BACKDROP", backdrop.into_field_arg_with_id(None)),
     )
 }
@@ -44,7 +46,7 @@ where
     Val: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_whengreaterthan)
+        BlockNormalBuilder::new(PrimaryOpCode::event_whengreaterthan)
             .add_input_into_arg("VALUE", value)
             .add_field("WHENGREATERTHANMENU", variable.into_field_arg_with_id(None)),
     )
@@ -72,7 +74,7 @@ where
     Bcast: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_whenbroadcastreceived)
+        BlockNormalBuilder::new(PrimaryOpCode::event_whenbroadcastreceived)
             .add_field("BROADCAST_OPTION", broadcast.into_field_arg_with_id(None)),
     )
 }
@@ -82,7 +84,7 @@ where
     Bcast: IntoArg<Broadcast>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_broadcast)
+        BlockNormalBuilder::new(PrimaryOpCode::event_broadcast)
             .add_input_into_arg("BROADCAST_INPUT", broadcast),
     )
 }
@@ -92,7 +94,7 @@ where
     Bcast: IntoArg<Broadcast>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::event_broadcastandwait)
+        BlockNormalBuilder::new(PrimaryOpCode::event_broadcastandwait)
             .add_input_into_arg("BROADCAST_INPUT", broadcast),
     )
 }

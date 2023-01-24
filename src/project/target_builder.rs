@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 
-use crate::scripting::script_builder::StackBuilder;
+use crate::scripting::script_builder::{StackBuilder, VarListBuf};
 
 use super::*;
 use resource::{Resource, ValidResource};
@@ -147,6 +147,11 @@ impl Default for CommentBuilder {
     }
 }
 
+struct GlobalVarListBuf {
+    vars: HashMap<String, Uid>,
+    lists: HashMap<String, Uid>,
+}
+
 #[rustfmt::skip]
 #[derive(Debug, Clone, PartialEq)]
 pub struct TargetBuilder {
@@ -221,7 +226,13 @@ impl TargetBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Target {
+    /// When global_varlist_buf suppose to be none when the Stage itself is building.
+    /// The .1 return value is going to return Some when stage itself is also building.
+    pub fn build(
+        self,
+        file_buff: &mut Vec<Resource>,
+        global_varlist_buf: Option<&GlobalVarListBuf>,
+    ) -> (Target, Option<GlobalVarListBuf>) {
         let TargetBuilder {
             name,
             variables,
@@ -261,10 +272,34 @@ impl TargetBuilder {
             })
             .collect();
         let mut comments = comments;
+        let variable_buf: HashMap<String, Uid> = variables
+            .iter()
+            .map(|(uid, var)| (var.name.clone(), (&uid[..]).into()))
+            .collect();
+        let list_buf: HashMap<String, Uid> = lists
+            .iter()
+            .map(|(uid, list)| (list.name.clone(), (&uid[..]).into()))
+            .collect();
         let blocks: HashMap<String, Block> = block_stackes
             .into_iter()
             .flat_map(|stack_builder| {
-                let (builded_stack, _first_block) = stack_builder.build(&mut comments);
+                let (builded_stack, _first_block) = stack_builder.build(
+                    &mut comments,
+                    &match global_varlist_buf {
+                        Some(global_varlist_buf) => VarListBuf {
+                            global_vars: &global_varlist_buf.vars,
+                            global_lists: &global_varlist_buf.lists,
+                            this_sprite_vars: &variable_buf,
+                            this_sprite_lists: &list_buf,
+                        },
+                        None => VarListBuf {
+                            global_vars: &variable_buf,
+                            global_lists: &list_buf,
+                            this_sprite_vars: &variable_buf,
+                            this_sprite_lists: &list_buf,
+                        },
+                    },
+                );
                 builded_stack
                     .into_iter()
                     .map(|(uid, block)| (uid.into_inner(), block))
@@ -282,7 +317,7 @@ impl TargetBuilder {
             .into_iter()
             .map(|sound_builder| sound_builder.build(file_buff))
             .collect();
-        Target {
+        let target = Target {
             name,
             variables: StringHashMap(variables),
             lists: StringHashMap(lists),
@@ -294,7 +329,17 @@ impl TargetBuilder {
             sounds,
             layer_order: layer_order as i64,
             volume: volume.into(),
-        }
+        };
+        (
+            target,
+            match global_varlist_buf {
+                Some(_) => None,
+                None => Some(GlobalVarListBuf {
+                    vars: variable_buf,
+                    lists: list_buf,
+                }),
+            },
+        )
     }
 }
 
@@ -449,7 +494,7 @@ impl StageBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Stage {
+    pub fn build(self, file_buff: &mut Vec<Resource>) -> (Stage, GlobalVarListBuf) {
         let StageBuilder {
             target,
             tempo,
@@ -457,14 +502,18 @@ impl StageBuilder {
             video_transparency,
             text_to_speech_language: _,
         } = self;
-        Stage {
-            target: target.build(file_buff),
+        let (target, Some(global_var_list)) = target.build(file_buff, None) else {
+            panic!("stage suppose to return what global var they had");
+        };
+        let stage = Stage {
+            target,
             tempo: tempo.into(),
             video_state,
             video_transparency: video_transparency.into(),
             text_to_speech_language: None,
             is_stage: true,
-        }
+        };
+        (stage, global_var_list)
     }
 }
 
@@ -533,7 +582,11 @@ impl SpriteBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Sprite {
+    pub fn build(
+        self,
+        file_buff: &mut Vec<Resource>,
+        global_varlist_buf: &GlobalVarListBuf,
+    ) -> Sprite {
         let SpriteBuilder {
             target,
             visible,
@@ -545,7 +598,7 @@ impl SpriteBuilder {
             rotation_style,
         } = self;
         Sprite {
-            target: target.build(file_buff),
+            target: target.build(file_buff, Some(global_varlist_buf)).0,
             visible,
             x: x.into(),
             y: y.into(),

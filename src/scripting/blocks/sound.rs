@@ -7,7 +7,7 @@ where
     Sound: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_playuntildone)
+        BlockNormalBuilder::new(PrimaryOpCode::sound_playuntildone)
             .add_input_into_arg("SOUND_MENU", sound),
     )
 }
@@ -19,7 +19,7 @@ where
     Sound: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_play).add_input_into_arg("SOUND_MENU", sound),
+        BlockNormalBuilder::new(PrimaryOpCode::sound_play).add_input_into_arg("SOUND_MENU", sound),
     )
 }
 
@@ -31,7 +31,7 @@ where
     Sound: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_sounds_menu)
+        BlockNormalBuilder::new(PrimaryOpCode::sound_sounds_menu)
             .add_field("SOUND_MENU", sound.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -39,7 +39,7 @@ where
 }
 
 pub fn stop_all_sound() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sound_stopallsounds))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sound_stopallsounds))
 }
 
 /// Accepts:
@@ -51,7 +51,7 @@ where
     Fx: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_changeeffectby)
+        BlockNormalBuilder::new(PrimaryOpCode::sound_changeeffectby)
             .add_input_into_arg("VALUE", by)
             .add_field("EFFECT", effect.into_field_arg()),
     )
@@ -66,14 +66,14 @@ where
     Fx: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_seteffectto)
+        BlockNormalBuilder::new(PrimaryOpCode::sound_seteffectto)
             .add_input_into_arg("VALUE", to)
             .add_field("EFFECT", effect.into_field_arg()),
     )
 }
 
 pub fn clear_sound_effects() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sound_cleareffects))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sound_cleareffects))
 }
 
 pub fn set_volume_to<Vol>(volume: Vol) -> StackBlock
@@ -81,7 +81,8 @@ where
     Vol: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_setvolumeto).add_input_into_arg("VOLUME", volume),
+        BlockNormalBuilder::new(PrimaryOpCode::sound_setvolumeto)
+            .add_input_into_arg("VOLUME", volume),
     )
 }
 
@@ -90,10 +91,11 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sound_changeeffectby).add_input_into_arg("VOLUME", by),
+        BlockNormalBuilder::new(PrimaryOpCode::sound_changeeffectby)
+            .add_input_into_arg("VOLUME", by),
     )
 }
 
 pub fn volume() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sound_volume)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sound_volume)).into()
 }

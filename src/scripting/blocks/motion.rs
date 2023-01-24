@@ -5,7 +5,7 @@ where
     Steps: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_movesteps).add_input_into_arg("STEPS", steps),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_movesteps).add_input_into_arg("STEPS", steps),
     )
 }
 
@@ -14,7 +14,8 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnright).add_input_into_arg("DEGREES", degress),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_turnright)
+            .add_input_into_arg("DEGREES", degress),
     )
 }
 
@@ -23,7 +24,8 @@ where
     Deg: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_turnleft).add_input_into_arg("DEGREES", degress),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_turnleft)
+            .add_input_into_arg("DEGREES", degress),
     )
 }
 
@@ -36,7 +38,7 @@ where
     To: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_goto).add_input_into_arg("TO", to),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_goto).add_input_into_arg("TO", to),
     )
 }
 
@@ -50,7 +52,7 @@ where
     To: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_goto_menu)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_goto_menu)
             .add_field("TO", to.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -63,7 +65,7 @@ where
     Y: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_gotoxy)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_gotoxy)
             .add_input_into_arg("X", x)
             .add_input_into_arg("Y", y),
     )
@@ -79,7 +81,7 @@ where
     To: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_gotoxy)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_gotoxy)
             .add_input_into_arg("SECS", duration_secs)
             .add_input_into_arg("TO", to),
     )
@@ -95,7 +97,7 @@ where
     To: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_glideto_menu)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_glideto_menu)
             .add_field("TO", to.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -109,7 +111,7 @@ where
     Y: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_glidesecstoxy)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_glidesecstoxy)
             .add_input_into_arg("SECS", dur)
             .add_input_into_arg("X", x)
             .add_input_into_arg("Y", y),
@@ -121,7 +123,7 @@ where
     Dir: IntoArg<Angle>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_pointindirection)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_pointindirection)
             .add_input_into_arg("DIRECTION", direction),
     )
 }
@@ -134,7 +136,7 @@ where
     Towards: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_pointtowards)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_pointtowards)
             .add_input_into_arg("TOWARDS", towards),
     )
 }
@@ -148,7 +150,7 @@ where
     Towards: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_pointtowards_menu)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_pointtowards_menu)
             .add_field("TOWARDS", towards.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -160,7 +162,7 @@ where
     X: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("X", x),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("X", x),
     )
 }
 
@@ -169,7 +171,7 @@ where
     Y: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("Y", y),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("Y", y),
     )
 }
 
@@ -178,7 +180,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_changexby).add_input_into_arg("DX", by),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_changexby).add_input_into_arg("DX", by),
     )
 }
 
@@ -187,12 +189,14 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_changeyby).add_input_into_arg("DY", by),
+        BlockNormalBuilder::new(PrimaryOpCode::motion_changeyby).add_input_into_arg("DY", by),
     )
 }
 
 pub fn if_on_edge_bounce() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_ifonedgebounce))
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::motion_ifonedgebounce,
+    ))
 }
 
 /// Accepts:
@@ -204,19 +208,19 @@ where
     Style: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::motion_setrotationstyle)
+        BlockNormalBuilder::new(PrimaryOpCode::motion_setrotationstyle)
             .add_field("STYLE", style.into_field_arg_with_id(None)),
     )
 }
 
 pub fn direction() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_direction)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::motion_direction)).into()
 }
 
 pub fn y_position() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_yposition)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::motion_yposition)).into()
 }
 
 pub fn x_position() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::motion_xposition)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::motion_xposition)).into()
 }

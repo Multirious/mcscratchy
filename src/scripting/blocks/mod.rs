@@ -7,7 +7,7 @@
 //!  - "_mouse_"
 //!
 
-pub(self) use super::{arg::*, script_builder::BlockBuilder, typed_script_builder::*};
+pub(self) use super::{arg::*, script_builder::BlockNormalBuilder, typed_script_builder::*};
 pub(self) use crate::opcode::PrimaryOpCode;
 
 pub mod control;

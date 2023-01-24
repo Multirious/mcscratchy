@@ -8,7 +8,8 @@ where
     Secs: IntoArg<PositiveNumber>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_wait).add_input_into_arg("DURATION", duration),
+        BlockNormalBuilder::new(PrimaryOpCode::control_wait)
+            .add_input_into_arg("DURATION", duration),
     )
 }
 
@@ -18,7 +19,7 @@ where
     ToRepeat: IntoStackArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_repeat)
+        BlockNormalBuilder::new(PrimaryOpCode::control_repeat)
             .add_input_into_arg("TIMES", times)
             .add_optional_into_input_stack("SUBSTACK", to_repeat),
     )
@@ -29,7 +30,7 @@ where
     ToRepeat: IntoStackArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_forever)
+        BlockNormalBuilder::new(PrimaryOpCode::control_forever)
             .add_optional_into_input_stack("SUBSTACK", to_repeat),
     )
 }
@@ -40,7 +41,7 @@ where
     IfT: IntoStackArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_if)
+        BlockNormalBuilder::new(PrimaryOpCode::control_if)
             .add_input_into_arg("CONDITION", condition)
             .add_optional_input_stack("SUBSTACK", if_true.map(IntoStackArg::into_stack_arg)),
     )
@@ -57,7 +58,7 @@ where
     IfF: IntoStackArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_if_else)
+        BlockNormalBuilder::new(PrimaryOpCode::control_if_else)
             .add_input_into_arg("CONDITION", condition)
             .add_optional_into_input_stack("SUBSTACK", if_true)
             .add_optional_into_input_stack("SUBSTACK2", if_false),
@@ -69,7 +70,7 @@ where
     Cond: IntoArg<Bool>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_wait_until)
+        BlockNormalBuilder::new(PrimaryOpCode::control_wait_until)
             .add_input_into_arg("CONDITION", condition),
     )
 }
@@ -80,7 +81,7 @@ where
     ToRepeat: IntoStackArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_if_else)
+        BlockNormalBuilder::new(PrimaryOpCode::control_if_else)
             .add_input_into_arg("CONDITION", condition)
             .add_optional_into_input_stack("SUBSTACK", to_repeat),
     )
@@ -95,7 +96,7 @@ where
     Stop: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_stop)
+        BlockNormalBuilder::new(PrimaryOpCode::control_stop)
             .add_field("STOP_OPTION", stop_option.into_field_arg_with_id(None))
             .mutation(BlockMutation {
                 tag_name: "mutation".to_owned(),
@@ -106,7 +107,9 @@ where
 }
 
 pub fn when_i_start_as_a_clone() -> HatBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::control_start_as_clone))
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::control_start_as_clone,
+    ))
 }
 
 /// Accepts:
@@ -116,7 +119,7 @@ where
     Spr: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_create_clone_of)
+        BlockNormalBuilder::new(PrimaryOpCode::control_create_clone_of)
             .add_input_into_arg("CLONE_OPTION", sprite),
     )
 }
@@ -129,7 +132,7 @@ where
     Spr: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::control_create_clone_of)
+        BlockNormalBuilder::new(PrimaryOpCode::control_create_clone_of)
             .add_field("CLONE_OPTION", sprite.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -137,5 +140,7 @@ where
 }
 
 pub fn delete_this_clone() -> CapBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::control_delete_this_clone))
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::control_delete_this_clone,
+    ))
 }

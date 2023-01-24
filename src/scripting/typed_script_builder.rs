@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::derive_everything;
 
-use super::script_builder::{BlockBuilder, StackBuilder};
+use super::script_builder::{BlockBuilder, BlockNormalBuilder, BlockVarListBuilder, StackBuilder};
 
 derive_everything! {
     pub struct StackableSide;
@@ -41,9 +41,17 @@ pub struct TypedStackBuilder<S, E> {
 }
 
 impl<S, E> TypedStackBuilder<S, E> {
-    pub fn start(block_builder: BlockBuilder) -> TypedStackBuilder<S, E> {
+    pub fn start(block_builder: BlockNormalBuilder) -> TypedStackBuilder<S, E> {
         TypedStackBuilder {
             stack_builder: StackBuilder::start(block_builder),
+            start: PhantomData,
+            end: PhantomData,
+        }
+    }
+
+    pub fn start_varlist(block_builder: BlockVarListBuilder) -> TypedStackBuilder<S, E> {
+        TypedStackBuilder {
+            stack_builder: StackBuilder::start_varlist(block_builder),
             start: PhantomData,
             end: PhantomData,
         }
@@ -65,7 +73,7 @@ impl<S, E> TypedStackBuilder<S, E> {
     }
 
     pub fn move_head(mut self, x: f64, y: f64) -> Self {
-        self.stack_builder.ref_move_head(x, y);
+        self.stack_builder.mut_move_head(x, y);
         self
     }
 }

@@ -9,7 +9,7 @@ where
     What: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_touchingobject)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingobject)
             .add_input_into_arg("TOUCHINGOBJECTMENU", what),
     )
     .into()
@@ -25,7 +25,7 @@ where
     What: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_touchingobjectmenu)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingobjectmenu)
             .add_field("TOUCHINGOBJECTMENU", what.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -37,7 +37,8 @@ where
     Col: IntoArg<Color>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_touchingcolor).add_input_into_arg("COLOR", color),
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingcolor)
+            .add_input_into_arg("COLOR", color),
     )
     .into()
 }
@@ -48,7 +49,7 @@ where
     ColB: IntoArg<Color>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
             .add_input_into_arg("COLOR", color_a)
             .add_input_into_arg("COLOR2", color_b),
     )
@@ -63,7 +64,7 @@ where
     What: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
             .add_input_into_arg("DISTANCETOMENU", what),
     )
     .into()
@@ -78,7 +79,7 @@ where
     What: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
             .add_field("DISTANCETOMENU", what.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -90,13 +91,13 @@ where
     Msg: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_askandwait)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_askandwait)
             .add_input_into_arg("QUESTION", prompt_message),
     )
 }
 
 pub fn answer() -> JustReporter<Text> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_answer)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_answer)).into()
 }
 
 /// Accepts:
@@ -113,7 +114,8 @@ where
     Key: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_keypressed).add_input_into_arg("KEY_OPTION", key),
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_keypressed)
+            .add_input_into_arg("KEY_OPTION", key),
     )
     .into()
 }
@@ -133,7 +135,7 @@ where
     Key: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_keyoptions)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_keyoptions)
             .add_input_into_arg("KEY_OPTION", key)
             .shadow(true),
     )
@@ -141,11 +143,11 @@ where
 }
 
 pub fn mouse_down() -> JustReporter<Bool> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_mousedown)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_mousedown)).into()
 }
 
 pub fn mouse_x() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_mousex)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_mousex)).into()
 }
 
 /// Accepts:
@@ -156,21 +158,21 @@ where
     Mode: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_setdragmode)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_setdragmode)
             .add_field("DRAG_MODE", mode.into_field_arg_with_id(None)),
     )
 }
 
 pub fn loudness() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_loudness)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_loudness)).into()
 }
 
 pub fn timer() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_timer)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_timer)).into()
 }
 
 pub fn reset_timer() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_resettimer))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_resettimer))
 }
 
 /// `what` Accepts:
@@ -200,7 +202,7 @@ where
     What: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_of)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_of)
             .add_input_into_arg("OBJECT", what)
             .add_field("PROPERTY", var.into_field_arg_with_id(None)),
     )
@@ -216,7 +218,7 @@ where
     What: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_of_object_menu)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_of_object_menu)
             .add_field("OBJECT", what.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -236,16 +238,19 @@ where
     Fmt: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::sensing_current)
+        BlockNormalBuilder::new(PrimaryOpCode::sensing_current)
             .add_field("CURRENTMENU", format.into_field_arg_with_id(None)),
     )
     .into()
 }
 
 pub fn days_since_2000() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_dayssince2000)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::sensing_dayssince2000,
+    ))
+    .into()
 }
 
 pub fn username() -> JustReporter<Text> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::sensing_username)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::sensing_username)).into()
 }
