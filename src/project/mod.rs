@@ -54,12 +54,11 @@ impl ProjectBuilder {
             meta,
         } = self;
         let mut targets = Vec::with_capacity(1 + sprite_builders.len());
-        targets.push(SpriteOrStage::Stage(stage_builder.build(file_buff)));
-        targets.extend(
-            sprite_builders
-                .into_iter()
-                .map(|sprite_builder| SpriteOrStage::Sprite(sprite_builder.build(file_buff))),
-        );
+        let (stage, global_varlist_buf) = stage_builder.build(file_buff);
+        targets.push(SpriteOrStage::Stage(stage));
+        targets.extend(sprite_builders.into_iter().map(|sprite_builder| {
+            SpriteOrStage::Sprite(sprite_builder.build(file_buff, &global_varlist_buf))
+        }));
         Project {
             meta,
             extensions: serde_json::value::Value::Array(vec![]),

@@ -6,7 +6,7 @@ where
     Rhs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_add)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_add)
             .add_input_into_arg("NUM1", lhs)
             .add_input_into_arg("NUM2", rhs),
     )
@@ -19,7 +19,7 @@ where
     Rhs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_subtract)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_subtract)
             .add_input_into_arg("NUM1", lhs)
             .add_input_into_arg("NUM2", rhs),
     )
@@ -32,7 +32,7 @@ where
     Rhs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_multiply)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_multiply)
             .add_input_into_arg("NUM1", lhs)
             .add_input_into_arg("NUM2", rhs),
     )
@@ -45,7 +45,7 @@ where
     Rhs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_divide)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_divide)
             .add_input_into_arg("NUM1", lhs)
             .add_input_into_arg("NUM2", rhs),
     )
@@ -58,7 +58,7 @@ where
     To: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_random)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_random)
             .add_input_into_arg("FROM", from)
             .add_input_into_arg("TO", to),
     )
@@ -71,7 +71,7 @@ where
     Rhs: IntoArg<Value>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_lt)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_lt)
             .add_input_into_arg("OPERAND1", lhs)
             .add_input_into_arg("OPERAND2", rhs),
     )
@@ -84,7 +84,7 @@ where
     Rhs: IntoArg<Value>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_gt)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_gt)
             .add_input_into_arg("OPERAND1", lhs)
             .add_input_into_arg("OPERAND2", rhs),
     )
@@ -97,7 +97,7 @@ where
     Rhs: IntoArg<Value>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_equals)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_equals)
             .add_input_into_arg("OPERAND1", lhs)
             .add_input_into_arg("OPERAND2", rhs),
     )
@@ -110,7 +110,7 @@ where
     B: IntoArg<Bool>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_and)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_and)
             .add_input_into_arg("OPERAND1", a)
             .add_input_into_arg("OPERAND2", b),
     )
@@ -123,7 +123,7 @@ where
     B: IntoArg<Bool>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_or)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_or)
             .add_input_into_arg("OPERAND1", a)
             .add_input_into_arg("OPERAND2", b),
     )
@@ -135,7 +135,7 @@ where
     Val: IntoArg<Bool>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_or).add_input_into_arg("OPERAND", val),
+        BlockNormalBuilder::new(PrimaryOpCode::operator_or).add_input_into_arg("OPERAND", val),
     )
     .into()
 }
@@ -146,7 +146,7 @@ where
     TextB: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_join)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_join)
             .add_input_into_arg("STRING1", a)
             .add_input_into_arg("STRING2", b),
     )
@@ -159,7 +159,7 @@ where
     TextA: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_letter_of)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_letter_of)
             .add_input_into_arg("LETTER", idx)
             .add_input_into_arg("STRING", text),
     )
@@ -171,7 +171,7 @@ where
     TextA: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_length).add_input_into_arg("STRING", text),
+        BlockNormalBuilder::new(PrimaryOpCode::operator_length).add_input_into_arg("STRING", text),
     )
     .into()
 }
@@ -182,7 +182,7 @@ where
     Contains: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_contains)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_contains)
             .add_input_into_arg("STRING1", text)
             .add_input_into_arg("STRING2", contains),
     )
@@ -195,7 +195,7 @@ where
     Divisor: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_mod)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_mod)
             .add_input_into_arg("NUM1", dividend)
             .add_input_into_arg("NUM2", divisor),
     )
@@ -207,7 +207,7 @@ where
     Val: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_round).add_input_into_arg("NUM", val),
+        BlockNormalBuilder::new(PrimaryOpCode::operator_round).add_input_into_arg("NUM", val),
     )
     .into()
 }
@@ -233,7 +233,7 @@ where
     Val: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::operator_mathop)
+        BlockNormalBuilder::new(PrimaryOpCode::operator_mathop)
             .add_input_into_arg("NUM", val)
             .add_field("OPERATOR", op.into_field_arg_with_id(None)),
     )

@@ -5,7 +5,8 @@ where
     Msg: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_think).add_input_arg("MESSAGE", message.into_arg()),
+        BlockNormalBuilder::new(PrimaryOpCode::looks_think)
+            .add_input_arg("MESSAGE", message.into_arg()),
     )
 }
 
@@ -15,7 +16,7 @@ where
     Secs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_thinkforsecs)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_thinkforsecs)
             .add_input_into_arg("MESSAGE", message)
             .add_input_into_arg("SECS", secs),
     )
@@ -26,7 +27,7 @@ where
     Msg: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_say).add_input_into_arg("MESSAGE", message),
+        BlockNormalBuilder::new(PrimaryOpCode::looks_say).add_input_into_arg("MESSAGE", message),
     )
 }
 
@@ -36,7 +37,7 @@ where
     Secs: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_sayforsecs)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_sayforsecs)
             .add_input_into_arg("MESSAGE", message)
             .add_input_into_arg("SECS", secs),
     )
@@ -49,7 +50,7 @@ where
     Costume: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_switchcostumeto)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_switchcostumeto)
             .add_input_into_arg("COSTUME", costume),
     )
 }
@@ -62,7 +63,7 @@ where
     Costume: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_costume)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_costume)
             .add_field("COSTUME", costume.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -70,7 +71,7 @@ where
 }
 
 pub fn next_costume() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_nextcostume))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::looks_nextcostume))
 }
 
 /// Accepts:
@@ -80,7 +81,7 @@ where
     Backdrop: IntoArg<Text>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_switchbackdropto)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_switchbackdropto)
             .add_input_into_arg("BACKDROP", backdrop),
     )
 }
@@ -93,7 +94,7 @@ where
     Backdrop: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_backdrops)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_backdrops)
             .add_field("BACKDROP", backdrop.into_field_arg_with_id(None))
             .shadow(true),
     )
@@ -101,7 +102,7 @@ where
 }
 
 pub fn next_backdrop() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_nextbackdrop))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::looks_nextbackdrop))
 }
 
 pub fn change_size_by<By>(by: By) -> StackBlock
@@ -109,7 +110,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_changesizeby).add_input_into_arg("CHANGE", by),
+        BlockNormalBuilder::new(PrimaryOpCode::looks_changesizeby).add_input_into_arg("CHANGE", by),
     )
 }
 
@@ -118,7 +119,7 @@ where
     To: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_setsizeto).add_input_into_arg("SIZE", to),
+        BlockNormalBuilder::new(PrimaryOpCode::looks_setsizeto).add_input_into_arg("SIZE", to),
     )
 }
 
@@ -136,7 +137,7 @@ where
     By: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_changeeffectby)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_changeeffectby)
             .add_input_into_arg("CHANGE", by)
             .add_field("EFFECT", effect.into_field_arg_with_id(None)),
     )
@@ -156,22 +157,24 @@ where
     To: IntoArg<Number>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_seteffectto)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_seteffectto)
             .add_input_into_arg("TO", to)
             .add_field("EFFECT", effect.into_field_arg_with_id(None)),
     )
 }
 
 pub fn clear_graphic_effects() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_cleargraphiceffects))
+    TypedStackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::looks_cleargraphiceffects,
+    ))
 }
 
 pub fn show() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_show))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::looks_show))
 }
 
 pub fn hide() -> StackBlock {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_hide))
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::looks_hide))
 }
 
 /// Accepts:
@@ -182,7 +185,7 @@ where
     Layer: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_gotofrontback)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_gotofrontback)
             .add_field("FRONT_BACK", layer.into_field_arg_with_id(None)),
     )
 }
@@ -196,7 +199,7 @@ where
     By: IntoArg<Integer>,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_goforwardbackwardlayers)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_goforwardbackwardlayers)
             .add_input_into_arg("NUM", by)
             .add_field("FORWARD_BACKWORD", layer.into_field_arg_with_id(None)),
     )
@@ -210,7 +213,7 @@ where
     Ty: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_costumenumbername)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_costumenumbername)
             .add_field("NUMBER_NAME", return_type.into_field_arg_with_id(None)),
     )
     .into()
@@ -224,12 +227,12 @@ where
     Ty: IntoFieldArg,
 {
     TypedStackBuilder::start(
-        BlockBuilder::new(PrimaryOpCode::looks_backdropnumbername)
+        BlockNormalBuilder::new(PrimaryOpCode::looks_backdropnumbername)
             .add_field("NUMBER_NAME", return_type.into_field_arg_with_id(None)),
     )
     .into()
 }
 
 pub fn size() -> JustReporter<Number> {
-    TypedStackBuilder::start(BlockBuilder::new(PrimaryOpCode::looks_size)).into()
+    TypedStackBuilder::start(BlockNormalBuilder::new(PrimaryOpCode::looks_size)).into()
 }
