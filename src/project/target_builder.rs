@@ -147,7 +147,7 @@ impl Default for CommentBuilder {
     }
 }
 
-struct GlobalVarListBuf {
+pub struct GlobalVarListBuf {
     vars: HashMap<String, Uid>,
     lists: HashMap<String, Uid>,
 }

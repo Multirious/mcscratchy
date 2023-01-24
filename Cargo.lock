@@ -445,7 +445,7 @@ dependencies = [
 [[package]]
 name = "rs-sb3"
 version = "0.5.0"
-source = "git+https://github.com/Multirious/rs-sb3#6b94f40067e263ff7fe743273cf56c5797bd2443"
+source = "git+https://github.com/Multirious/rs-sb3#63d39cd86fc0c041359691f2674a2cfd3afc7fd4"
 dependencies = [
  "serde",
  "serde_json",
