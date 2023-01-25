@@ -235,7 +235,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_mathop)
             .add_input_into_arg("NUM", val)
-            .add_field("OPERATOR", op.into_field_arg_with_id(None)),
+            .add_into_field("OPERATOR", op),
     )
     .into()
 }

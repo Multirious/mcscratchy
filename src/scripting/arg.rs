@@ -1,6 +1,6 @@
 use rs_sb3::block::BlockInputValue;
 
-use crate::{derive_everything, uid::Uid};
+use crate::derive_everything;
 
 use super::{
     script_builder::BlockFieldBuilder,
@@ -29,32 +29,6 @@ derive_everything! {
     pub struct NoRef;
     // this is for IntoFieldArg when there's an id field but i've never seen it has id
     pub struct NoRefMaybe;
-}
-
-pub trait IntoArgType {}
-pub trait IntoFieldArgType {}
-
-macro_rules! empty_trait_impl {
-    ($($traitty:ty {$($tytoimpl:ty)*})*) => {
-        $(
-            $(
-                impl $traitty for $tytoimpl {}
-            )*
-        )*
-    }
-}
-
-empty_trait_impl! {
-    IntoArgType {
-        Number PositiveNumber PositiveInteger
-        Integer Float Angle Color Text Bool Value
-    }
-    IntoFieldArgType {
-        NoRef
-        Broadcast
-        Variable
-        List
-    }
 }
 
 pub enum Arg {

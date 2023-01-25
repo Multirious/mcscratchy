@@ -26,7 +26,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingobjectmenu)
-            .add_field("TOUCHINGOBJECTMENU", what.into_field_arg_with_id(None))
+            .add_into_field("TOUCHINGOBJECTMENU", what)
             .shadow(true),
     )
     .into()
@@ -80,7 +80,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
-            .add_field("DISTANCETOMENU", what.into_field_arg_with_id(None))
+            .add_into_field("DISTANCETOMENU", what)
             .shadow(true),
     )
     .into()
@@ -159,7 +159,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_setdragmode)
-            .add_field("DRAG_MODE", mode.into_field_arg_with_id(None)),
+            .add_into_field("DRAG_MODE", mode),
     )
 }
 
@@ -204,7 +204,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_of)
             .add_input_into_arg("OBJECT", what)
-            .add_field("PROPERTY", var.into_field_arg_with_id(None)),
+            .add_into_field("PROPERTY", var),
     )
     .into()
 }
@@ -219,7 +219,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_of_object_menu)
-            .add_field("OBJECT", what.into_field_arg_with_id(None))
+            .add_into_field("OBJECT", what)
             .shadow(true),
     )
     .into()
@@ -239,7 +239,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_current)
-            .add_field("CURRENTMENU", format.into_field_arg_with_id(None)),
+            .add_into_field("CURRENTMENU", format),
     )
     .into()
 }

@@ -21,7 +21,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenkeypressed)
-            .add_field("KEY_OPTION", key.into_field_arg_with_id(None)),
+            .add_into_field("KEY_OPTION", key),
     )
 }
 
@@ -33,7 +33,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenbackdropswitchesto)
-            .add_field("BACKDROP", backdrop.into_field_arg_with_id(None)),
+            .add_into_field("BACKDROP", backdrop),
     )
 }
 
@@ -48,7 +48,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whengreaterthan)
             .add_input_into_arg("VALUE", value)
-            .add_field("WHENGREATERTHANMENU", variable.into_field_arg_with_id(None)),
+            .add_into_field("WHENGREATERTHANMENU", variable),
     )
 }
 
@@ -71,11 +71,11 @@ where
 /// TODO: Don't forgot to create build for broadcast id
 pub fn when_broadcast_received<Bcast>(broadcast: Bcast) -> HatBlock
 where
-    Bcast: IntoFieldArg,
+    Bcast: IntoFieldArg<Broadcast>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenbroadcastreceived)
-            .add_field("BROADCAST_OPTION", broadcast.into_field_arg_with_id(None)),
+            .add_into_field("BROADCAST_OPTION", broadcast),
     )
 }
 

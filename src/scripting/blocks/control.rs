@@ -97,7 +97,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::control_stop)
-            .add_field("STOP_OPTION", stop_option.into_field_arg_with_id(None))
+            .add_into_field("STOP_OPTION", stop_option)
             .mutation(BlockMutation {
                 tag_name: "mutation".to_owned(),
                 children: vec![],
@@ -133,7 +133,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::control_create_clone_of)
-            .add_field("CLONE_OPTION", sprite.into_field_arg_with_id(None))
+            .add_into_field("CLONE_OPTION", sprite)
             .shadow(true),
     )
     .into()

@@ -18,6 +18,6 @@ pub mod operator;
 pub mod sensing;
 pub mod sound;
 
-pub mod variable;
+pub mod data;
 
 pub use {control::*, event::*, looks::*, motion::*, operator::*, sensing::*, sound::*};

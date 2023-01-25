@@ -32,7 +32,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_sounds_menu)
-            .add_field("SOUND_MENU", sound.into_field_arg_with_id(None))
+            .add_into_field("SOUND_MENU", sound)
             .shadow(true),
     )
     .into()

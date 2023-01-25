@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use super::{
-    arg::{Arg, IntoArg, IntoStackArg},
-    blocks::IntoFieldArg,
+    arg::{Arg, IntoArg, IntoFieldArg, IntoStackArg},
     typed_script_builder::TypedStackBuilder,
 };
 use crate::{project::target_builder::CommentBuilder, uid::Uid};
@@ -262,7 +261,7 @@ impl BlockNormalBuilder {
             .collect();
         let fields: HashMap<String, BlockField> = fields
             .into_iter()
-            .map(|(key, field)| (key, field.build()))
+            .map(|(key, field)| (key, field.build(target_context)))
             .collect();
         let comment = match comment {
             Some(comment) => {
@@ -326,23 +325,22 @@ impl BlockFieldBuilder {
         let rs_sb3::value::Value::Text(ref value_str) = value else {
             unreachable!("why the hell the `not text` would be here")
         };
-        match kind {
+        let id = match kind {
             FieldKind::NoRef => return BlockField::NoId { value },
             FieldKind::NoRefMaybe => return BlockField::WithId { value, id: None },
-            _ => {}
+
+            FieldKind::Broadcast => target_context.all_broadcasts,
+            FieldKind::Variable => target_context.this_sprite_vars,
+            FieldKind::GlobalVariable => target_context.global_vars,
+            FieldKind::List => target_context.this_sprite_lists,
+            FieldKind::GlobalList => target_context.global_lists,
         }
-        let id = match kind {
-            FieldKind::Broadcast => target_context.all_broadcasts.get(value_str),
-            FieldKind::Variable => target_context.this_sprite_vars.get(value_str),
-            FieldKind::GlobalVariable => target_context.global_vars.get(value_str),
-            FieldKind::List => target_context.this_sprite_lists.get(value_str),
-            FieldKind::GlobalList => target_context.global_lists.get(value_str),
-            _ => unreachable!("other has been matched previously"),
-        }
+        .get(value_str)
+        .map(|uid| uid.clone())
         .unwrap_or("__unknown__".into());
         BlockField::WithId {
             value,
-            id: Some(id),
+            id: Some(id.into_inner()),
         }
     }
 }

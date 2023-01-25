@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 
 use crate::scripting::script_builder::{StackBuilder, TargetContext};
@@ -158,7 +156,7 @@ pub struct TargetBuilder {
     name:            String,
     variables:       HashMap<String, VariableBuilder>,
     lists:           HashMap<String, ListBuilder>,
-    broadcasts:      HashSet<String>,
+    broadcasts:      HashMap<String, Uid>,
     block_stackes:   Vec<StackBuilder>,
     comments:        HashMap<Uid, Comment>,
     costumes:        Vec<CostumeBuilder>,
@@ -191,7 +189,7 @@ impl TargetBuilder {
     }
 
     pub fn add_broadcast<S: Into<String>>(mut self, name: S) -> Self {
-        self.broadcasts.insert(name.into());
+        self.broadcasts.insert(name.into(), Uid::generate());
         self
     }
 
@@ -226,12 +224,17 @@ impl TargetBuilder {
         self
     }
 
+    pub(crate) fn broadcasts(&self) -> &HashMap<String, Uid> {
+        &self.broadcasts
+    }
+
     /// When global_varlist_buf suppose to be none when the Stage itself is building.
     /// The .1 return value is going to return Some when stage itself is also building.
     pub fn build(
         self,
         file_buff: &mut Vec<Resource>,
         global_varlist_buf: Option<&GlobalVarListBuf>,
+        all_broadcasts: &HashMap<String, Uid>,
     ) -> (Target, Option<GlobalVarListBuf>) {
         let TargetBuilder {
             name,
@@ -262,15 +265,9 @@ impl TargetBuilder {
             .collect();
         let broadcasts: HashMap<String, Broadcast> = broadcasts
             .into_iter()
-            .map(|broadcast_name| {
-                (
-                    Uid::generate().into_inner(),
-                    Broadcast {
-                        name: broadcast_name,
-                    },
-                )
-            })
+            .map(|(name, uid)| (uid.into_inner(), Broadcast { name }))
             .collect();
+
         let mut comments = comments;
         let variable_ctx: HashMap<String, Uid> = variables
             .iter()
@@ -279,10 +276,6 @@ impl TargetBuilder {
         let list_ctx: HashMap<String, Uid> = lists
             .iter()
             .map(|(uid, list)| (list.name.clone(), (&uid[..]).into()))
-            .collect();
-        let broadcast_ctx: HashMap<String, Uid> = broadcasts
-            .iter()
-            .map(|(uid, broadcast)| (broadcast.name.clone(), (&uid[..]).into()))
             .collect();
         let blocks: HashMap<String, Block> = block_stackes
             .into_iter()
@@ -295,13 +288,14 @@ impl TargetBuilder {
                             global_lists: &global_varlist_buf.lists,
                             this_sprite_vars: &variable_ctx,
                             this_sprite_lists: &list_ctx,
-                            broadcasts,
+                            all_broadcasts,
                         },
                         None => TargetContext {
                             global_vars: &variable_ctx,
                             global_lists: &list_ctx,
                             this_sprite_vars: &variable_ctx,
                             this_sprite_lists: &list_ctx,
+                            all_broadcasts,
                         },
                     },
                 );
@@ -355,7 +349,7 @@ impl Default for TargetBuilder {
             name:            "".to_owned(),
             variables:       HashMap::default(),
             lists:           HashMap::default(),
-            broadcasts:      HashSet::default(),
+            broadcasts:      HashMap::default(),
             block_stackes:   Vec::default(),
             comments:        HashMap::default(),
             costumes:        Vec::default(),
@@ -499,7 +493,15 @@ impl StageBuilder {
         self
     }
 
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> (Stage, GlobalVarListBuf) {
+    pub(crate) fn target(&self) -> &TargetBuilder {
+        &self.target
+    }
+
+    pub fn build(
+        self,
+        file_buff: &mut Vec<Resource>,
+        all_broadcasts: &HashMap<String, Uid>,
+    ) -> (Stage, GlobalVarListBuf) {
         let StageBuilder {
             target,
             tempo,
@@ -507,7 +509,7 @@ impl StageBuilder {
             video_transparency,
             text_to_speech_language: _,
         } = self;
-        let (target, Some(global_var_list)) = target.build(file_buff, None) else {
+        let (target, Some(global_var_list)) = target.build(file_buff, None, all_broadcasts) else {
             panic!("stage suppose to return what global var they had");
         };
         let stage = Stage {
@@ -587,10 +589,15 @@ impl SpriteBuilder {
         self
     }
 
+    pub(crate) fn target(&self) -> &TargetBuilder {
+        &self.target
+    }
+
     pub fn build(
         self,
         file_buff: &mut Vec<Resource>,
         global_varlist_buf: &GlobalVarListBuf,
+        all_broadcasts: &HashMap<String, Uid>,
     ) -> Sprite {
         let SpriteBuilder {
             target,
@@ -603,7 +610,9 @@ impl SpriteBuilder {
             rotation_style,
         } = self;
         Sprite {
-            target: target.build(file_buff, Some(global_varlist_buf)).0,
+            target: target
+                .build(file_buff, Some(global_varlist_buf), all_broadcasts)
+                .0,
             visible,
             x: x.into(),
             y: y.into(),

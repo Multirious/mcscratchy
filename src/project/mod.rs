@@ -53,11 +53,28 @@ impl ProjectBuilder {
             monitors,
             meta,
         } = self;
+
+        let all_broadcasts: HashMap<String, Uid> = stage_builder
+            .target()
+            .broadcasts()
+            .iter()
+            .chain(
+                sprite_builders
+                    .iter()
+                    .flat_map(|sb| sb.target().broadcasts()),
+            )
+            .map(|(name, uid)| (name.clone(), uid.clone()))
+            .collect::<HashMap<_, _>>();
+
         let mut targets = Vec::with_capacity(1 + sprite_builders.len());
-        let (stage, global_varlist_buf) = stage_builder.build(file_buff);
+        let (stage, global_varlist_buf) = stage_builder.build(file_buff, &all_broadcasts);
         targets.push(SpriteOrStage::Stage(stage));
         targets.extend(sprite_builders.into_iter().map(|sprite_builder| {
-            SpriteOrStage::Sprite(sprite_builder.build(file_buff, &global_varlist_buf))
+            SpriteOrStage::Sprite(sprite_builder.build(
+                file_buff,
+                &global_varlist_buf,
+                &all_broadcasts,
+            ))
         }));
         Project {
             meta,

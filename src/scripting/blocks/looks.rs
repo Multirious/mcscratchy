@@ -64,7 +64,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_costume)
-            .add_field("COSTUME", costume.into_field_arg_with_id(None))
+            .add_into_field("COSTUME", costume)
             .shadow(true),
     )
     .into()
@@ -95,7 +95,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_backdrops)
-            .add_field("BACKDROP", backdrop.into_field_arg_with_id(None))
+            .add_into_field("BACKDROP", backdrop)
             .shadow(true),
     )
     .into()
@@ -139,7 +139,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_changeeffectby)
             .add_input_into_arg("CHANGE", by)
-            .add_field("EFFECT", effect.into_field_arg_with_id(None)),
+            .add_into_field("EFFECT", effect),
     )
 }
 
@@ -159,7 +159,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_seteffectto)
             .add_input_into_arg("TO", to)
-            .add_field("EFFECT", effect.into_field_arg_with_id(None)),
+            .add_into_field("EFFECT", effect),
     )
 }
 
@@ -186,7 +186,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_gotofrontback)
-            .add_field("FRONT_BACK", layer.into_field_arg_with_id(None)),
+            .add_into_field("FRONT_BACK", layer),
     )
 }
 
@@ -201,7 +201,7 @@ where
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_goforwardbackwardlayers)
             .add_input_into_arg("NUM", by)
-            .add_field("FORWARD_BACKWORD", layer.into_field_arg_with_id(None)),
+            .add_into_field("FORWARD_BACKWORD", layer),
     )
 }
 
@@ -214,7 +214,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_costumenumbername)
-            .add_field("NUMBER_NAME", return_type.into_field_arg_with_id(None)),
+            .add_into_field("NUMBER_NAME", return_type),
     )
     .into()
 }
@@ -228,7 +228,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_backdropnumbername)
-            .add_field("NUMBER_NAME", return_type.into_field_arg_with_id(None)),
+            .add_into_field("NUMBER_NAME", return_type),
     )
     .into()
 }

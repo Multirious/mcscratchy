@@ -53,7 +53,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_goto_menu)
-            .add_field("TO", to.into_field_arg_with_id(None))
+            .add_into_field("TO", to)
             .shadow(true),
     )
     .into()
@@ -98,7 +98,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_glideto_menu)
-            .add_field("TO", to.into_field_arg_with_id(None))
+            .add_into_field("TO", to)
             .shadow(true),
     )
     .into()
@@ -151,7 +151,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_pointtowards_menu)
-            .add_field("TOWARDS", towards.into_field_arg_with_id(None))
+            .add_into_field("TOWARDS", towards)
             .shadow(true),
     )
     .into()
@@ -209,7 +209,7 @@ where
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_setrotationstyle)
-            .add_field("STYLE", style.into_field_arg_with_id(None)),
+            .add_into_field("STYLE", style),
     )
 }
 
