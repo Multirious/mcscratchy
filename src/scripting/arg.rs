@@ -17,12 +17,44 @@ derive_everything! {
     pub struct Angle;
     pub struct Color;
     pub struct Text;
+    pub struct Bool;
+
     pub struct Broadcast;
     pub struct Variable;
     pub struct List;
-    pub struct Bool;
 
     pub struct Value; // Could be type text or number
+
+    // this is for IntoFieldArg when there's no id field
+    pub struct NoRef;
+    // this is for IntoFieldArg when there's an id field but i've never seen it has id
+    pub struct NoRefMaybe;
+}
+
+pub trait IntoArgType {}
+pub trait IntoFieldArgType {}
+
+macro_rules! empty_trait_impl {
+    ($($traitty:ty {$($tytoimpl:ty)*})*) => {
+        $(
+            $(
+                impl $traitty for $tytoimpl {}
+            )*
+        )*
+    }
+}
+
+empty_trait_impl! {
+    IntoArgType {
+        Number PositiveNumber PositiveInteger
+        Integer Float Angle Color Text Bool Value
+    }
+    IntoFieldArgType {
+        NoRef
+        Broadcast
+        Variable
+        List
+    }
 }
 
 pub enum Arg {
@@ -38,9 +70,8 @@ pub trait IntoStackArg {
     fn into_stack_arg(self) -> StackBuilder;
 }
 
-pub trait IntoFieldArg {
+pub trait IntoFieldArg<T = NoRefMaybe> {
     fn into_field_arg(self) -> BlockFieldBuilder;
-    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder;
 }
 
 impl<T> IntoArg<T> for Arg {
@@ -102,18 +133,10 @@ impl IntoFieldArg for &str {
     fn into_field_arg(self) -> BlockFieldBuilder {
         BlockFieldBuilder::new(self.into())
     }
-
-    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder {
-        BlockFieldBuilder::new_with_id(self.into(), id)
-    }
 }
 
 impl IntoFieldArg for String {
     fn into_field_arg(self) -> BlockFieldBuilder {
         BlockFieldBuilder::new(self)
-    }
-
-    fn into_field_arg_with_id(self, id: Option<Uid>) -> BlockFieldBuilder {
-        BlockFieldBuilder::new_with_id(self, id)
     }
 }

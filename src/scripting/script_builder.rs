@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     arg::{Arg, IntoArg, IntoStackArg},
+    blocks::IntoFieldArg,
     typed_script_builder::TypedStackBuilder,
 };
 use crate::{project::target_builder::CommentBuilder, uid::Uid};
@@ -60,7 +61,7 @@ impl BlockInputBuilder {
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
         uid_of_this_block: &Uid,
-        varlist_buf: &VarListBuf,
+        target_context: &TargetContext,
     ) -> BlockInput {
         let BlockInputBuilder { shadow, values } = self;
         let mut values_b: Vec<Option<UidOrValue>> = vec![];
@@ -69,7 +70,8 @@ impl BlockInputBuilder {
                 Some(v) => match v {
                     StackOrValue::Value(v) => values_b.push(Some(UidOrValue::Value(v))),
                     StackOrValue::Stack(s) => {
-                        let (mut s_builded, first_block_uid) = s.build(comment_buff, varlist_buf);
+                        let (mut s_builded, first_block_uid) =
+                            s.build(comment_buff, target_context);
                         let first_block = s_builded.get_mut(&first_block_uid).unwrap();
                         match first_block {
                             Block::Normal(n) => {
@@ -185,6 +187,15 @@ impl BlockNormalBuilder {
         self
     }
 
+    pub fn add_into_field<S: Into<String>, F: IntoFieldArg<FT>, FT>(
+        mut self,
+        key: S,
+        field: F,
+    ) -> Self {
+        self.fields.insert(key.into(), field.into_field_arg());
+        self
+    }
+
     pub fn shadow(mut self, is_shadow: bool) -> Self {
         self.shadow = is_shadow;
         self
@@ -223,7 +234,7 @@ impl BlockNormalBuilder {
         self,
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
-        varlist_buf: &VarListBuf,
+        target_context: &TargetContext,
     ) -> (BlockNormal, Uid) {
         let BlockNormalBuilder {
             opcode,
@@ -245,7 +256,7 @@ impl BlockNormalBuilder {
             .map(|(key, input)| {
                 (
                     key,
-                    input.build(comment_buff, final_stack, &my_uid, varlist_buf),
+                    input.build(comment_buff, final_stack, &my_uid, target_context),
                 )
             })
             .collect();
@@ -279,33 +290,59 @@ impl BlockNormalBuilder {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum FieldKind {
+    NoRef,
+    #[default]
+    NoRefMaybe,
+    Broadcast,
+    Variable,
+    GlobalVariable,
+    List,
+    GlobalList,
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct BlockFieldBuilder {
     value: String,
-    id: Option<Option<Uid>>,
+    kind: FieldKind,
 }
 
 impl BlockFieldBuilder {
-    pub fn new_with_id(value: String, id: Option<Uid>) -> BlockFieldBuilder {
-        BlockFieldBuilder {
-            value,
-            id: Some(id),
-        }
+    pub fn new_with_kind(value: String, kind: FieldKind) -> BlockFieldBuilder {
+        BlockFieldBuilder { value, kind }
     }
 
     pub fn new(value: String) -> BlockFieldBuilder {
-        BlockFieldBuilder { value, id: None }
+        BlockFieldBuilder {
+            value,
+            kind: FieldKind::NoRefMaybe,
+        }
     }
 
-    pub fn build(self) -> BlockField {
-        let BlockFieldBuilder { value, id } = self;
+    pub fn build(self, target_context: &TargetContext) -> BlockField {
+        let BlockFieldBuilder { value, kind } = self;
         let value = value.into();
-        match id {
-            Some(id) => BlockField::WithId {
-                value,
-                id: id.map(|id| id.into_inner()),
-            },
-            None => BlockField::NoId { value },
+        let rs_sb3::value::Value::Text(ref value_str) = value else {
+            unreachable!("why the hell the `not text` would be here")
+        };
+        match kind {
+            FieldKind::NoRef => return BlockField::NoId { value },
+            FieldKind::NoRefMaybe => return BlockField::WithId { value, id: None },
+            _ => {}
+        }
+        let id = match kind {
+            FieldKind::Broadcast => target_context.all_broadcasts.get(value_str),
+            FieldKind::Variable => target_context.this_sprite_vars.get(value_str),
+            FieldKind::GlobalVariable => target_context.global_vars.get(value_str),
+            FieldKind::List => target_context.this_sprite_lists.get(value_str),
+            FieldKind::GlobalList => target_context.global_lists.get(value_str),
+            _ => unreachable!("other has been matched previously"),
+        }
+        .unwrap_or("__unknown__".into());
+        BlockField::WithId {
+            value,
+            id: Some(id),
         }
     }
 }
@@ -364,7 +401,7 @@ impl BlockVarListBuilder {
         self
     }
 
-    pub fn build(self, varlist_buf: &VarListBuf) -> (BlockVarListReporterTop, Uid) {
+    pub fn build(self, target_context: &TargetContext) -> (BlockVarListReporterTop, Uid) {
         let BlockVarListBuilder {
             kind,
             from,
@@ -374,27 +411,14 @@ impl BlockVarListBuilder {
         } = self;
         let my_uid = Uid::generate();
         let varlist_id = match (&kind, from) {
-            (ListOrVariable::Variable, VarListFrom::Global) => varlist_buf
-                .global_vars
-                .get(&name)
-                .map(|uid| uid.clone())
-                .unwrap_or("__unknown__".into()),
-            (ListOrVariable::Variable, VarListFrom::Sprite) => varlist_buf
-                .this_sprite_vars
-                .get(&name)
-                .map(|uid| uid.clone())
-                .unwrap_or("__unknown__".into()),
-            (ListOrVariable::List, VarListFrom::Global) => varlist_buf
-                .global_lists
-                .get(&name)
-                .map(|uid| uid.clone())
-                .unwrap_or("__unknown__".into()),
-            (ListOrVariable::List, VarListFrom::Sprite) => varlist_buf
-                .this_sprite_lists
-                .get(&name)
-                .map(|uid| uid.clone())
-                .unwrap_or("__unknown__".into()),
-        };
+            (ListOrVariable::Variable, VarListFrom::Global) => target_context.global_vars,
+            (ListOrVariable::Variable, VarListFrom::Sprite) => target_context.this_sprite_vars,
+            (ListOrVariable::List, VarListFrom::Global) => target_context.global_lists,
+            (ListOrVariable::List, VarListFrom::Sprite) => target_context.this_sprite_lists,
+        }
+        .get(&name)
+        .map(|uid| uid.clone())
+        .unwrap_or("__unknown__".into());
         let block_varlist_b = BlockVarListReporterTop {
             kind,
             name,
@@ -412,11 +436,12 @@ pub enum BlockBuilder {
     VarList(BlockVarListBuilder),
 }
 
-pub struct VarListBuf<'a> {
+pub struct TargetContext<'a> {
     pub global_vars: &'a HashMap<String, Uid>,
     pub global_lists: &'a HashMap<String, Uid>,
     pub this_sprite_vars: &'a HashMap<String, Uid>,
     pub this_sprite_lists: &'a HashMap<String, Uid>,
+    pub all_broadcasts: &'a HashMap<String, Uid>,
 }
 
 impl BlockBuilder {
@@ -424,15 +449,15 @@ impl BlockBuilder {
         self,
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
-        varlist_buf: &VarListBuf,
+        target_context: &TargetContext,
     ) -> (Block, Uid) {
         match self {
             BlockBuilder::Normal(n) => {
-                let (b, uid) = n.build(comment_buff, final_stack, varlist_buf);
+                let (b, uid) = n.build(comment_buff, final_stack, target_context);
                 (Block::Normal(b), uid)
             }
             BlockBuilder::VarList(vl) => {
-                let (b, uid) = vl.build(varlist_buf);
+                let (b, uid) = vl.build(target_context);
                 (Block::VarList(b), uid)
             }
         }
@@ -497,7 +522,7 @@ impl StackBuilder {
     pub fn build(
         self,
         comment_buff: &mut HashMap<Uid, Comment>,
-        varlist_buf: &VarListBuf,
+        target_context: &TargetContext,
     ) -> (HashMap<Uid, Block>, Uid) {
         let mut stack_b: HashMap<Uid, Block> = HashMap::default();
         let mut self_stack_iter = self.stack.into_iter();
@@ -505,7 +530,7 @@ impl StackBuilder {
             self_stack_iter
                 .next()
                 .unwrap()
-                .build(comment_buff, &mut stack_b, varlist_buf);
+                .build(comment_buff, &mut stack_b, target_context);
 
         match first_block {
             Block::Normal(mut first_block) => {
@@ -516,7 +541,7 @@ impl StackBuilder {
                 for block_builder2 in self_stack_iter {
                     let (mut block1, block1_uid) = previous_block.take().unwrap();
                     let (Block::Normal(mut block2), block2_uid) =
-                        block_builder2.build(comment_buff, &mut stack_b, varlist_buf) else {
+                        block_builder2.build(comment_buff, &mut stack_b, target_context) else {
                         panic!("BlockVarList shouldn't exist here")
                     };
 

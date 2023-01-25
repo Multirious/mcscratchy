@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use rs_sb3::{string_hashmap::StringHashMap, value::Value};
 
-use crate::scripting::script_builder::{StackBuilder, VarListBuf};
+use crate::scripting::script_builder::{StackBuilder, TargetContext};
 
 use super::*;
 use resource::{Resource, ValidResource};
@@ -272,13 +272,17 @@ impl TargetBuilder {
             })
             .collect();
         let mut comments = comments;
-        let variable_buf: HashMap<String, Uid> = variables
+        let variable_ctx: HashMap<String, Uid> = variables
             .iter()
             .map(|(uid, var)| (var.name.clone(), (&uid[..]).into()))
             .collect();
-        let list_buf: HashMap<String, Uid> = lists
+        let list_ctx: HashMap<String, Uid> = lists
             .iter()
             .map(|(uid, list)| (list.name.clone(), (&uid[..]).into()))
+            .collect();
+        let broadcast_ctx: HashMap<String, Uid> = broadcasts
+            .iter()
+            .map(|(uid, broadcast)| (broadcast.name.clone(), (&uid[..]).into()))
             .collect();
         let blocks: HashMap<String, Block> = block_stackes
             .into_iter()
@@ -286,17 +290,18 @@ impl TargetBuilder {
                 let (builded_stack, _first_block) = stack_builder.build(
                     &mut comments,
                     &match global_varlist_buf {
-                        Some(global_varlist_buf) => VarListBuf {
+                        Some(global_varlist_buf) => TargetContext {
                             global_vars: &global_varlist_buf.vars,
                             global_lists: &global_varlist_buf.lists,
-                            this_sprite_vars: &variable_buf,
-                            this_sprite_lists: &list_buf,
+                            this_sprite_vars: &variable_ctx,
+                            this_sprite_lists: &list_ctx,
+                            broadcasts,
                         },
-                        None => VarListBuf {
-                            global_vars: &variable_buf,
-                            global_lists: &list_buf,
-                            this_sprite_vars: &variable_buf,
-                            this_sprite_lists: &list_buf,
+                        None => TargetContext {
+                            global_vars: &variable_ctx,
+                            global_lists: &list_ctx,
+                            this_sprite_vars: &variable_ctx,
+                            this_sprite_lists: &list_ctx,
                         },
                     },
                 );
@@ -335,8 +340,8 @@ impl TargetBuilder {
             match global_varlist_buf {
                 Some(_) => None,
                 None => Some(GlobalVarListBuf {
-                    vars: variable_buf,
-                    lists: list_buf,
+                    vars: variable_ctx,
+                    lists: list_ctx,
                 }),
             },
         )
