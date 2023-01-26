@@ -131,3 +131,70 @@ where
             .add_into_field("LIST", list),
     )
 }
+
+pub fn item_in_list<L, Idx>(list: L, idx: Idx) -> JustReporter<Value>
+where
+    L: IntoFieldArg<List>,
+    Idx: IntoArg<Integer>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_itemoflist)
+            .add_input_into_arg("INDEX", idx)
+            .add_into_field("LIST", list),
+    )
+    .into()
+}
+
+pub fn count_of_item_in_list<L, Item>(list: L, item: Item) -> JustReporter<Integer>
+where
+    L: IntoFieldArg<List>,
+    Item: IntoArg<Value>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_itemoflist)
+            .add_input_into_arg("ITEM", item)
+            .add_into_field("LIST", list),
+    )
+    .into()
+}
+
+pub fn length_of_list<L>(list: L) -> JustReporter<Integer>
+where
+    L: IntoFieldArg<List>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_lengthoflist).add_into_field("LIST", list),
+    )
+    .into()
+}
+
+pub fn list_contains<L, Item>(list: L, item: Item) -> JustReporter<Bool>
+where
+    L: IntoFieldArg<List>,
+    Item: IntoArg<Value>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_listcontainsitem)
+            .add_input_into_arg("ITEM", item)
+            .add_into_field("LIST", list),
+    )
+    .into()
+}
+
+pub fn show_list<L>(list: L) -> StackBlock
+where
+    L: IntoFieldArg<List>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_showlist).add_into_field("LIST", list),
+    )
+}
+
+pub fn hide_list<L>(list: L) -> StackBlock
+where
+    L: IntoFieldArg<List>,
+{
+    TypedStackBuilder::start(
+        BlockNormalBuilder::new(PrimaryOpCode::data_hidelist).add_into_field("LIST", list),
+    )
+}
