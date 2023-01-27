@@ -16,46 +16,52 @@ pub(crate) use derive_everything;
 macro_rules! script {
     () => {};
 
-    (forever {}) => {
-        forever(None)
+    (@block { $($block:tt)* }) => {
+        Some(script!($($block)*))
     };
-    (forever {$($inside:tt)*}) => {
-        forever(Some(script!($($inside)*)))
-    };
-
-    (if ($($cond:tt)*) {}) => {
-        if_(script!($($cond)*), None)
-    };
-    (if ($($cond:tt)*) { $($then:tt)* }) => {
-        if_(script!($($cond)*), Some(script!($($then)*)))
-    };
-    (if ($($cond:tt)*) { $($then:tt)* } $($next:tt)*) => {
-        if_(script!($($cond)*), Some(script!($($then)*))).next(script!($($next)*))
+    (@block {}) => {
+        None
     };
 
-    (if ($($cond:tt)*) {} else {}) => {
-        if_else(script!($($cond)*), None, None)
+    (@nextable ($thing:tt) @next $($next:tt)* ) => {
+        ($thing).next(script!($($next)*))
     };
-    (if ($($cond:tt)*) {$($ift:tt)*} else {}) => {
-        if_else(script!($($cond)*), Some(script!($($ift)*)), None)
+    (@nextable ($thing:tt) @next) => {
+        ($thing)
     };
-    (if ($($cond:tt)*) {} else {$($iff:tt)*}) => {
-        if_else(script!($($cond)*), None, Some(script!($($iff)*)))
+
+    (repeat ( $($times:tt)* ) { $($repeat:tt)* } $($next:tt)*) => {
+        script!(@nextable (
+            repeat(
+                script!($($times:tt)*),
+                script!(@block { $($repeat)* })
+            )
+        ) @next $($next)*)
     };
-    (if ($($cond:tt)*) {$($ift:tt)*} else {$($iff:tt)*}) => {
-        if_else(script!($($cond)*), Some(script!($($ift)*)), Some(script!($($iff)*)))
+
+    (forever { $($block:tt)* }) => {
+        forever(script!(@block { $($block)* }))
     };
-    (if ($($cond:tt)*) {} else {} $($next:tt)*) => {
-        if_else(script!($($cond)*), None, None).next(script!($($next)*))
+
+    (if ( $($cond:tt)* ) { $($then:tt)* } $($next:tt)*) => {
+        script!(@nextable (
+            if_(
+                script!($($cond)*),
+                script!(@block { $($then)* })
+            )
+        ) @next $($next)*)
     };
-    (if ($($cond:tt)*) {$($ift:tt)*} else {} $($next:tt)*) => {
-        if_else(script!($($cond)*), Some(script!($($ift)*)), None).next(script!($($next)*))
+
+    (if ( $($cond:tt)* ) { $($if_t:tt)* } else { $($if_f:tt)* }) => {
+        if_else(
+            script!($($cond)*),
+            script!(@block { $($if_t)* }),
+            script!(@block { $($if_f)* })
+        )
     };
-    (if ($($cond:tt)*) {} else {$($iff:tt)*} $($next:tt)*) => {
-        if_else(script!($($cond)*), None, Some(script!($($iff)*))).next(script!($($next)*))
-    };
-    (if ($($cond:tt)*) {$($ift:tt)*} else {$($iff:tt)*} $($next:tt)*) => {
-        if_else(script!($($cond)*), Some(script!($($ift)*)), Some(script!($($iff)*))).next(script!($($next)*))
+    (if ( $($cond:tt)* ) { $($if_t:tt)* } else { $($if_f:tt)* } $($next:tt)*) => {
+        script!(if ( $($cond)* ) { $($if_t)* } else { $($if_f)* })
+        .next(script!($($next:tt)*))
     };
 
     ($block:expr) => {
@@ -106,8 +112,8 @@ mod test {
             }
         );
 
-        let export_dir = var("EXPORT_DIR").unwrap();
-        let export_name = var("EXPORT_NAME").unwrap();
+        let export_dir = var("EXPORT_DIR").expect("EXPORT_DIR env");
+        let export_name = var("EXPORT_NAME").expect("EXPORT_NAME env");
         let project = ProjectBuilder::new()
             .set_stage(StageBuilder::new(
                 TargetBuilder::new("Stage")

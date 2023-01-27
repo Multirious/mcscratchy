@@ -91,4 +91,9 @@ impl<S> TypedStackBuilder<S, StackableSide> {
             end: PhantomData,
         }
     }
+
+    /// This is use for macro
+    pub fn nothing(self) -> Self {
+        self
+    }
 }
