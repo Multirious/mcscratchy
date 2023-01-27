@@ -16,20 +16,25 @@ pub(crate) use derive_everything;
 macro_rules! script {
     () => {};
 
-    (@block { $($block:tt)* }) => {
-        Some(script!($($block)*))
-    };
+    // Empty block
     (@block {}) => {
         None
     };
-
-    (@nextable ($thing:tt) @next $($next:tt)* ) => {
-        ($thing).next(script!($($next)*))
-    };
-    (@nextable ($thing:tt) @next) => {
-        ($thing)
+    // Block
+    (@block { $($block:tt)* }) => {
+        Some(script!($($block)*))
     };
 
+    // Stackable block that has no next block
+    (@nextable ($($thing:tt)*) @next) => {
+        $($thing)*
+    };
+    // Stackable block that has next block
+    (@nextable ($($thing:tt)*) @next $($next:tt)* ) => {
+        ($($thing)*).next(script!($($next)*))
+    };
+
+    // Repeat
     (repeat ( $($times:tt)* ) { $($repeat:tt)* } $($next:tt)*) => {
         script!(@nextable (
             repeat(
@@ -39,10 +44,12 @@ macro_rules! script {
         ) @next $($next)*)
     };
 
+    // Forever
     (forever { $($block:tt)* }) => {
         forever(script!(@block { $($block)* }))
     };
 
+    // If
     (if ( $($cond:tt)* ) { $($then:tt)* } $($next:tt)*) => {
         script!(@nextable (
             if_(
@@ -52,16 +59,18 @@ macro_rules! script {
         ) @next $($next)*)
     };
 
-    (if ( $($cond:tt)* ) { $($if_t:tt)* } else { $($if_f:tt)* }) => {
-        if_else(
+    // If else
+    (if ( $($cond:tt)* ) { $($if_t:tt)* } else { $($if_f:tt)* } $($next:tt)*) => {
+        script!(@nextable (if_else(
             script!($($cond)*),
             script!(@block { $($if_t)* }),
             script!(@block { $($if_f)* })
-        )
+        )) @next $($next)*)
     };
-    (if ( $($cond:tt)* ) { $($if_t:tt)* } else { $($if_f:tt)* } $($next:tt)*) => {
-        script!(if ( $($cond)* ) { $($if_t)* } else { $($if_f)* })
-        .next(script!($($next:tt)*))
+
+    // Repeat until
+    (repeat_until) => {
+
     };
 
     ($block:expr) => {
