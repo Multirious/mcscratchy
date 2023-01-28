@@ -31,6 +31,7 @@ derive_everything! {
     pub struct NoRefMaybe;
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Arg {
     Value(BlockInputValue),
     Stack(StackBuilder),
@@ -60,6 +61,12 @@ impl<E> IntoStackArg for TypedStackBuilder<StackableSide, E> {
     }
 }
 
+impl IntoStackArg for StackBuilder {
+    fn into_stack_arg(self) -> StackBuilder {
+        self
+    }
+}
+
 impl<T, S, E> IntoArg<T> for Reporter<T, S, E> {
     fn into_arg(self) -> Arg {
         Arg::Stack(self.0.into_untyped())
@@ -85,6 +92,12 @@ into_arg_basic_impl! {
     Value => String,
     Value => i64,
     Value => f64
+}
+
+impl IntoArg<Bool> for bool {
+    fn into_arg(self) -> Arg {
+        Arg::Value(BlockInputValue::Number { value: 1.into() })
+    }
 }
 
 impl IntoArg<Text> for &str {

@@ -7,8 +7,8 @@
 //!  - "_mouse_"
 //!
 
-pub(self) use super::{arg::*, script_builder::BlockNormalBuilder, typed_script_builder::*};
-pub(self) use crate::opcode::PrimaryOpCode;
+use super::{arg::*, script_builder::BlockNormalBuilder, typed_script_builder::*};
+use crate::opcode::PrimaryOpCode;
 
 pub mod control;
 pub mod event;
@@ -20,4 +20,4 @@ pub mod sound;
 
 pub mod data;
 
-pub use {control::*, event::*, looks::*, motion::*, operator::*, sensing::*, sound::*};
+pub use {control::*, data::*, event::*, looks::*, motion::*, operator::*, sensing::*, sound::*};
