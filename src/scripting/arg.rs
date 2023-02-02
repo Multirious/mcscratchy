@@ -4,7 +4,7 @@ use crate::derive_everything;
 
 use super::{
     script_builder::BlockFieldBuilder,
-    script_builder::StackBuilder,
+    script_builder::{BlockInputBuilder, FieldKind, StackBuilder},
     typed_script_builder::{Reporter, StackableSide, TypedStackBuilder},
 };
 
@@ -19,50 +19,48 @@ derive_everything! {
     pub struct Text;
     pub struct Bool;
 
-    pub struct Broadcast;
-    pub struct Variable;
-    pub struct List;
-
     pub struct Value; // Could be type text or number
 
     // this is for IntoFieldArg when there's no id field
     pub struct NoRef;
     // this is for IntoFieldArg when there's an id field but i've never seen it has id
     pub struct NoRefMaybe;
+
+    pub struct Broadcast;
+    pub struct Variable;
+    pub struct List;
 }
 
+// Arg =========================================================================
 #[derive(Debug, Clone, PartialEq)]
 pub enum Arg {
     Value(BlockInputValue),
     Stack(StackBuilder),
 }
 
+{
+    // am here
+}
+
 pub trait IntoArg<T> {
     fn into_arg(self) -> Arg;
-}
-
-pub trait IntoStackArg {
-    fn into_stack_arg(self) -> StackBuilder;
-}
-
-pub trait IntoFieldArg<T = NoRefMaybe> {
-    fn into_field_arg(self) -> BlockFieldBuilder;
+    fn into_block_input_builder(self) -> BlockInputBuilder {
+        match self.into_arg() {
+            Arg::Value(v) => self.add_input(
+                key.into(),
+                BlockInputBuilder::new(ShadowInputType::Shadow).input_some(StackOrValue::Value(v)),
+            ),
+            Arg::Stack(b) => self.add_input(
+                key.into(),
+                BlockInputBuilder::new(ShadowInputType::NoShadow)
+                    .input_some(StackOrValue::Stack(b)),
+            ),
+        }
+    }
 }
 
 impl<T> IntoArg<T> for Arg {
     fn into_arg(self) -> Arg {
-        self
-    }
-}
-
-impl<E> IntoStackArg for TypedStackBuilder<StackableSide, E> {
-    fn into_stack_arg(self) -> StackBuilder {
-        self.into_untyped()
-    }
-}
-
-impl IntoStackArg for StackBuilder {
-    fn into_stack_arg(self) -> StackBuilder {
         self
     }
 }
@@ -116,6 +114,28 @@ impl IntoArg<Value> for &str {
     }
 }
 
+// StackArg ====================================================================
+pub trait IntoStackArg {
+    fn into_stack_arg(self) -> StackBuilder;
+}
+
+impl<E> IntoStackArg for TypedStackBuilder<StackableSide, E> {
+    fn into_stack_arg(self) -> StackBuilder {
+        self.into_untyped()
+    }
+}
+
+impl IntoStackArg for StackBuilder {
+    fn into_stack_arg(self) -> StackBuilder {
+        self
+    }
+}
+
+// FieldArg ====================================================================
+pub trait IntoFieldArg<T = NoRefMaybe> {
+    fn into_field_arg(self) -> BlockFieldBuilder;
+}
+
 impl IntoFieldArg for &str {
     fn into_field_arg(self) -> BlockFieldBuilder {
         BlockFieldBuilder::new(self.into())
@@ -125,5 +145,44 @@ impl IntoFieldArg for &str {
 impl IntoFieldArg for String {
     fn into_field_arg(self) -> BlockFieldBuilder {
         BlockFieldBuilder::new(self)
+    }
+}
+
+impl IntoFieldArg<Broadcast> for String {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self, FieldKind::Broadcast)
+    }
+}
+
+impl IntoFieldArg<Broadcast> for &str {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self.into(), FieldKind::Broadcast)
+    }
+}
+
+pub struct GlobalVar<S: Into<String>>(pub S);
+pub struct SpriteVar<S: Into<String>>(pub S);
+pub struct GlobalList<S: Into<String>>(pub S);
+pub struct SpriteList<S: Into<String>>(pub S);
+
+impl<S: Into<String>> IntoFieldArg<Variable> for GlobalVar<S> {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self.0.into(), FieldKind::GlobalVariable)
+    }
+}
+impl<S: Into<String>> IntoFieldArg<Variable> for SpriteVar<S> {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self.0.into(), FieldKind::SpriteVariable)
+    }
+}
+
+impl<S: Into<String>> IntoFieldArg<List> for GlobalList<S> {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self.0.into(), FieldKind::GlobalList)
+    }
+}
+impl<S: Into<String>> IntoFieldArg<List> for SpriteList<S> {
+    fn into_field_arg(self) -> BlockFieldBuilder {
+        BlockFieldBuilder::new_with_kind(self.0.into(), FieldKind::SpriteList)
     }
 }

@@ -40,14 +40,12 @@ impl BlockInputBuilder {
         self
     }
 
-    pub fn input_some(mut self, input: StackOrValue) -> Self {
-        self.values.push(Some(input));
-        self
+    pub fn input_some(self, input: StackOrValue) -> Self {
+        self.input(Some(input))
     }
 
-    pub fn input_none(mut self) -> Self {
-        self.values.push(None);
-        self
+    pub fn input_none(self) -> Self {
+        self.input(None)
     }
 
     /// Requires:
@@ -66,27 +64,31 @@ impl BlockInputBuilder {
         let mut values_b: Vec<Option<UidOrValue>> = vec![];
         for value in values {
             match value {
-                Some(v) => match v {
-                    StackOrValue::Value(v) => values_b.push(Some(UidOrValue::Value(v))),
-                    StackOrValue::Stack(s) => {
-                        let (mut s_builded, first_block_uid) =
-                            s.build(comment_buff, target_context);
-                        let first_block = s_builded.get_mut(&first_block_uid).unwrap();
-                        match first_block {
-                            Block::Normal(n) => {
-                                n.parent = Some(uid_of_this_block.clone().into_inner());
-                                n.top_level = false;
-                                n.x = None;
-                                n.y = None;
-                            }
-                            Block::VarList(_vl) => {
-                                panic!("varlist shouldn't exist here, they're supposed to be StackOrValue::Value()")
-                            }
+                Some(StackOrValue::Value(v)) => values_b.push(Some(UidOrValue::Value(v))),
+                Some(StackOrValue::Stack(s)) => {
+                    let (mut s_builded, first_block_uid) = s.build(comment_buff, target_context);
+                    let first_block = s_builded.get_mut(&first_block_uid).unwrap();
+                    match first_block {
+                        Block::Normal(n) => {
+                            n.parent = Some(uid_of_this_block.clone().into_inner());
+                            n.top_level = false;
+                            n.x = None;
+                            n.y = None;
                         }
-                        final_stack.extend(s_builded);
-                        values_b.push(Some(UidOrValue::Uid(first_block_uid.into_inner())))
+                        Block::VarList(_) => {
+                            let Block::VarList(vl) = s_builded.remove(&first_block_uid).unwrap() else {
+                                unreachable!()
+                            };
+                            let BlockVarListReporterTop { kind, name, id, .. } = vl;
+                            values_b.push(Some(UidOrValue::Value(match kind {
+                                ListOrVariable::Variable => BlockInputValue::Variable { name, id },
+                                ListOrVariable::List => BlockInputValue::List { name, id },
+                            })))
+                        }
                     }
-                },
+                    final_stack.extend(s_builded);
+                    values_b.push(Some(UidOrValue::Uid(first_block_uid.into_inner())))
+                }
                 None => values_b.push(None),
             }
         }
@@ -295,9 +297,9 @@ pub enum FieldKind {
     #[default]
     NoRefMaybe,
     Broadcast,
-    Variable,
+    SpriteVariable,
     GlobalVariable,
-    List,
+    SpriteList,
     GlobalList,
 }
 
@@ -330,9 +332,9 @@ impl BlockFieldBuilder {
             FieldKind::NoRefMaybe => return BlockField::WithId { value, id: None },
 
             FieldKind::Broadcast => target_context.all_broadcasts,
-            FieldKind::Variable => target_context.this_sprite_vars,
+            FieldKind::SpriteVariable => target_context.this_sprite_vars,
             FieldKind::GlobalVariable => target_context.global_vars,
-            FieldKind::List => target_context.this_sprite_lists,
+            FieldKind::SpriteList => target_context.this_sprite_lists,
             FieldKind::GlobalList => target_context.global_lists,
         }
         .get(value_str)
