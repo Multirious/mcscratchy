@@ -9,6 +9,7 @@
 
 use super::{arg::*, blocks, script_builder::BlockNormalBuilder, typed_script_builder::*};
 use crate::opcode::PrimaryOpCode;
+use crate::scripting::script_builder::BlockVarListBuilder;
 use rs_sb3::block::{BlockMutation, BlockMutationEnum, ListOrVariable};
 
 // Why don't I put this in different file?
@@ -24,50 +25,64 @@ use rs_sb3::block::{BlockMutation, BlockMutationEnum, ListOrVariable};
 // Sound
 // Data
 
+macro_rules! typed_block {
+    ( $(
+        $fn_name:ident( $(
+            $arg_name:ident: ($($arg_trait:tt)+)
+        ),* ) -> $return_ty:ty
+    )* ) => {
+        $(
+            pub fn $fn_name(
+                $($arg_name: impl $($arg_trait)+)*
+            ) -> $return_ty
+            {
+                TypedStackBuilder::assume_typed(
+                    blocks::$fn_name(
+                        $(
+                            typed_block!(@arg_thing ($($arg_trait)+) $arg_name)
+                        ),*
+                    )
+                )
+            }
+        )*
+    };
+
+    (@arg_thing (IntoInput $($o:tt)*) $arg:expr) => {
+        $arg.into_input()
+    };
+    (@arg_thing (IntoFieldArg $($o:tt)*)$arg:expr) => {
+        $arg.into_field()
+    };
+}
+
 // Control =====================================================================
-pub fn wait<Secs>(duration: Secs) -> StackBlock
-where
-    Secs: IntoArg<PositiveNumber>,
-{
-    // blocks::wait(duration.into_arg());
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_wait)
-            .add_input_into_arg("DURATION", duration),
-    )
+typed_block! {
+    wait(duration: (IntoInput<PositiveNumber>)) -> StackBlock
 }
 
-pub fn repeat<Times, ToRepeat>(times: Times, to_repeat: Option<ToRepeat>) -> StackBlock
-where
-    Times: IntoArg<PositiveInteger>,
-    ToRepeat: IntoStackArg,
-{
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_repeat)
-            .add_input_into_arg("TIMES", times)
-            .add_optional_into_input_stack("SUBSTACK", to_repeat),
-    )
+pub fn repeat(
+    times: impl IntoInput<PositiveInteger>,
+    to_repeat: Option<impl IntoInput<Stack>>,
+) -> StackBlock {
+    TypedStackBuilder::assume_typed(blocks::repeat(
+        times.into_input(),
+        to_repeat.map(IntoInput::into_input),
+    ))
 }
 
-pub fn forever<ToRepeat>(to_repeat: Option<ToRepeat>) -> StackBlock
-where
-    ToRepeat: IntoStackArg,
-{
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_forever)
-            .add_optional_into_input_stack("SUBSTACK", to_repeat),
-    )
+pub fn forever(to_repeat: Option<impl IntoInput<Stack>>) -> StackBlock {
+    TypedStackBuilder::assume_typed(blocks::forever(to_repeat.map(IntoInput::into_input)))
 }
 
 pub fn if_<Cond, IfT>(condition: Cond, if_true: Option<IfT>) -> StackBlock
 where
-    Cond: IntoArg<Bool>,
-    IfT: IntoStackArg,
+    Cond: IntoInput<Bool>,
+    IfT: IntoInput<Stack>,
 {
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_if)
-            .add_input_into_arg("CONDITION", condition)
-            .add_optional_input_stack("SUBSTACK", if_true.map(IntoStackArg::into_stack_arg)),
-    )
+    TypedStackBuilder::assume_typed(blocks::if_(
+        condition.into_input(),
+        if_true.map(IntoInput::into_input),
+    ))
 }
 
 pub fn if_else<Cond, IfT, IfF>(
@@ -76,38 +91,30 @@ pub fn if_else<Cond, IfT, IfF>(
     if_false: Option<IfF>,
 ) -> StackBlock
 where
-    Cond: IntoArg<Bool>,
-    IfT: IntoStackArg,
-    IfF: IntoStackArg,
+    Cond: IntoInput<Bool>,
+    IfT: IntoInput<Stack>,
+    IfF: IntoInput<Stack>,
 {
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_if_else)
-            .add_input_into_arg("CONDITION", condition)
-            .add_optional_into_input_stack("SUBSTACK", if_true)
-            .add_optional_into_input_stack("SUBSTACK2", if_false),
-    )
+    TypedStackBuilder::assume_typed(blocks::if_else(
+        condition.into_input(),
+        if_true.map(IntoInput::into_input),
+        if_false.map(IntoInput::into_input),
+    ))
 }
 
-pub fn wait_until<Cond>(condition: Cond) -> StackBlock
-where
-    Cond: IntoArg<Bool>,
-{
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_wait_until)
-            .add_input_into_arg("CONDITION", condition),
-    )
+typed_block! {
+    wait_until(condition: (IntoInput<Bool>)) -> StackBlock
 }
 
 pub fn repeat_until<Cond, ToRepeat>(condition: Cond, to_repeat: Option<ToRepeat>) -> StackBlock
 where
-    Cond: IntoArg<Bool>,
-    ToRepeat: IntoStackArg,
+    Cond: IntoInput<Bool>,
+    ToRepeat: IntoInput<Stack>,
 {
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_if_else)
-            .add_input_into_arg("CONDITION", condition)
-            .add_optional_into_input_stack("SUBSTACK", to_repeat),
-    )
+    TypedStackBuilder::assume_typed(blocks::repeat_until(
+        condition.into_input(),
+        to_repeat.map(IntoInput::into_input),
+    ))
 }
 
 /// `stop_option` Accepts:
@@ -116,30 +123,20 @@ where
 ///  - "all" and `has_next` should be `false`
 pub fn stop<Stop>(stop_option: Stop, has_next: bool) -> CapBlock
 where
-    Stop: IntoFieldArg,
+    Stop: IntoField,
 {
-    TypedStackBuilder::start(
-        BlockNormalBuilder::new(PrimaryOpCode::control_stop)
-            .add_into_field("STOP_OPTION", stop_option)
-            .mutation(BlockMutation {
-                tag_name: "mutation".to_owned(),
-                children: vec![],
-                mutation_enum: BlockMutationEnum::ControlStop { hasnext: has_next },
-            }),
-    )
+    TypedStackBuilder::assume_typed(blocks::stop(stop_option.into_field(), has_next))
 }
 
-pub fn when_i_start_as_a_clone() -> HatBlock {
-    TypedStackBuilder::start(BlockNormalBuilder::new(
-        PrimaryOpCode::control_start_as_clone,
-    ))
+typed_block! {
+    fn when_i_start_as_a_clone() -> HatBlock;
 }
 
 /// Accepts:
 ///  - Sprite name
 pub fn create_clone_of<Spr>(sprite: Spr) -> StackBlock
 where
-    Spr: IntoArg<Text>,
+    Spr: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::control_create_clone_of)
@@ -152,7 +149,7 @@ where
 ///  - Sprite name
 pub fn create_clone_of_menu<Spr>(sprite: Spr) -> MenuReporter
 where
-    Spr: IntoFieldArg,
+    Spr: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::control_create_clone_of)
@@ -186,7 +183,7 @@ pub fn when_flag_clicked() -> HatBlock {
 ///  - Letter a - z
 pub fn when_key_pressed<Key>(key: Key) -> HatBlock
 where
-    Key: IntoFieldArg,
+    Key: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenkeypressed)
@@ -198,7 +195,7 @@ where
 ///  - Backdrop name
 pub fn when_backdrop_switches_to<BD>(backdrop: BD) -> HatBlock
 where
-    BD: IntoFieldArg,
+    BD: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenbackdropswitchesto)
@@ -211,8 +208,8 @@ where
 /// - "TIMER"
 pub fn when_greater_than<Var, Val>(variable: Var, value: Val) -> HatBlock
 where
-    Var: IntoFieldArg,
-    Val: IntoArg<Number>,
+    Var: IntoField,
+    Val: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whengreaterthan)
@@ -240,7 +237,7 @@ where
 /// TODO: Don't forgot to create build for broadcast id
 pub fn when_broadcast_received<Bcast>(broadcast: Bcast) -> HatBlock
 where
-    Bcast: IntoFieldArg<Broadcast>,
+    Bcast: IntoField<Broadcast>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_whenbroadcastreceived)
@@ -250,7 +247,7 @@ where
 
 pub fn broadcast<Bcast>(broadcast: Bcast) -> StackBlock
 where
-    Bcast: IntoArg<Broadcast>,
+    Bcast: IntoInput<Broadcast>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_broadcast)
@@ -260,7 +257,7 @@ where
 
 pub fn broadcast_and_wait<Bcast>(broadcast: Bcast) -> StackBlock
 where
-    Bcast: IntoArg<Broadcast>,
+    Bcast: IntoInput<Broadcast>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::event_broadcastandwait)
@@ -271,7 +268,7 @@ where
 // Looks =======================================================================
 pub fn think<Msg>(message: Msg) -> StackBlock
 where
-    Msg: IntoArg<Text>,
+    Msg: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_think)
@@ -281,8 +278,8 @@ where
 
 pub fn think_for_secs<Msg, Secs>(message: Msg, secs: Secs) -> StackBlock
 where
-    Msg: IntoArg<Text>,
-    Secs: IntoArg<Number>,
+    Msg: IntoInput<Text>,
+    Secs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_thinkforsecs)
@@ -293,7 +290,7 @@ where
 
 pub fn say<Msg>(message: Msg) -> StackBlock
 where
-    Msg: IntoArg<Text>,
+    Msg: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_say).add_input_into_arg("MESSAGE", message),
@@ -302,8 +299,8 @@ where
 
 pub fn say_for_secs<Msg, Secs>(message: Msg, secs: Secs) -> StackBlock
 where
-    Msg: IntoArg<Text>,
-    Secs: IntoArg<Number>,
+    Msg: IntoInput<Text>,
+    Secs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_sayforsecs)
@@ -316,7 +313,7 @@ where
 ///  - Costume name
 pub fn switch_costume_to<Costume>(costume: Costume) -> StackBlock
 where
-    Costume: IntoArg<Text>,
+    Costume: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_switchcostumeto)
@@ -329,7 +326,7 @@ where
 ///  - Costume name
 pub fn costume_menu<Costume>(costume: Costume) -> MenuReporter
 where
-    Costume: IntoFieldArg,
+    Costume: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_costume)
@@ -347,7 +344,7 @@ pub fn next_costume() -> StackBlock {
 ///  - Costume name
 pub fn switch_backdrop_to<Backdrop>(backdrop: Backdrop) -> StackBlock
 where
-    Backdrop: IntoArg<Text>,
+    Backdrop: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_switchbackdropto)
@@ -360,7 +357,7 @@ where
 ///  - Backdrop name
 pub fn backdrop_menu<Backdrop>(backdrop: Backdrop) -> MenuReporter
 where
-    Backdrop: IntoFieldArg,
+    Backdrop: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_backdrops)
@@ -376,7 +373,7 @@ pub fn next_backdrop() -> StackBlock {
 
 pub fn change_size_by<By>(by: By) -> StackBlock
 where
-    By: IntoArg<Number>,
+    By: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_changesizeby).add_input_into_arg("CHANGE", by),
@@ -385,7 +382,7 @@ where
 
 pub fn set_size_to<To>(to: To) -> StackBlock
 where
-    To: IntoArg<Number>,
+    To: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_setsizeto).add_input_into_arg("SIZE", to),
@@ -402,8 +399,8 @@ where
 ///  - "GHOST"
 pub fn change_looks_effect_by<Fx, By>(effect: Fx, by: By) -> StackBlock
 where
-    Fx: IntoFieldArg,
-    By: IntoArg<Number>,
+    Fx: IntoField,
+    By: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_changeeffectby)
@@ -422,8 +419,8 @@ where
 ///  - "GHOST"
 pub fn set_looks_effect_to<Fx, To>(effect: Fx, to: To) -> StackBlock
 where
-    Fx: IntoFieldArg,
-    To: IntoArg<Number>,
+    Fx: IntoField,
+    To: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_seteffectto)
@@ -451,7 +448,7 @@ pub fn hide() -> StackBlock {
 ///  - "back"
 pub fn go_to_layer<Layer>(layer: Layer) -> StackBlock
 where
-    Layer: IntoFieldArg,
+    Layer: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_gotofrontback)
@@ -464,8 +461,8 @@ where
 ///  - "backward"
 pub fn change_layer<Layer, By>(layer: Layer, by: By) -> StackBlock
 where
-    Layer: IntoFieldArg,
-    By: IntoArg<Integer>,
+    Layer: IntoField,
+    By: IntoInput<Integer>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_goforwardbackwardlayers)
@@ -479,7 +476,7 @@ where
 /// - "name"
 pub fn costume<Ty>(return_type: Ty) -> JustReporter<Value>
 where
-    Ty: IntoFieldArg,
+    Ty: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_costumenumbername)
@@ -493,7 +490,7 @@ where
 /// - "name"
 pub fn backdrop<Ty>(return_type: Ty) -> JustReporter<Value>
 where
-    Ty: IntoFieldArg,
+    Ty: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::looks_backdropnumbername)
@@ -509,7 +506,7 @@ pub fn size() -> JustReporter<Number> {
 // Motion ======================================================================
 pub fn move_steps<Steps>(steps: Steps) -> StackBlock
 where
-    Steps: IntoArg<Number>,
+    Steps: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_movesteps).add_input_into_arg("STEPS", steps),
@@ -518,7 +515,7 @@ where
 
 pub fn turn_right<Deg>(degress: Deg) -> StackBlock
 where
-    Deg: IntoArg<Number>,
+    Deg: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_turnright)
@@ -528,7 +525,7 @@ where
 
 pub fn turn_left<Deg>(degress: Deg) -> StackBlock
 where
-    Deg: IntoArg<Number>,
+    Deg: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_turnleft)
@@ -542,7 +539,7 @@ where
 ///  - "_random_" go to random position
 pub fn go_to<To>(to: To) -> StackBlock
 where
-    To: IntoArg<Text>,
+    To: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_goto).add_input_into_arg("TO", to),
@@ -556,7 +553,7 @@ where
 ///  - "_random_" go to random position
 pub fn go_to_menu<To>(to: To) -> MenuReporter
 where
-    To: IntoFieldArg,
+    To: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_goto_menu)
@@ -568,8 +565,8 @@ where
 
 pub fn goto_xy<X, Y>(x: X, y: Y) -> StackBlock
 where
-    X: IntoArg<Number>,
-    Y: IntoArg<Number>,
+    X: IntoInput<Number>,
+    Y: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_gotoxy)
@@ -584,8 +581,8 @@ where
 ///  - "_random_" glide to random position
 pub fn glide_to<Dur, To>(duration_secs: Dur, to: To) -> StackBlock
 where
-    Dur: IntoArg<Number>,
-    To: IntoArg<Text>,
+    Dur: IntoInput<Number>,
+    To: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_gotoxy)
@@ -601,7 +598,7 @@ where
 ///  - "_random_" glide to random position
 pub fn glide_to_menu<To>(to: To) -> MenuReporter
 where
-    To: IntoFieldArg,
+    To: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_glideto_menu)
@@ -613,9 +610,9 @@ where
 
 pub fn glide_to_xy<Dur, X, Y>(dur: Dur, x: X, y: Y) -> StackBlock
 where
-    Dur: IntoArg<Number>,
-    X: IntoArg<Number>,
-    Y: IntoArg<Number>,
+    Dur: IntoInput<Number>,
+    X: IntoInput<Number>,
+    Y: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_glidesecstoxy)
@@ -627,7 +624,7 @@ where
 
 pub fn point_in_direction<Dir>(direction: Dir) -> StackBlock
 where
-    Dir: IntoArg<Angle>,
+    Dir: IntoInput<Angle>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_pointindirection)
@@ -640,7 +637,7 @@ where
 ///  - "_mouse_" glide to mouse position
 pub fn point_towards<Towards>(towards: Towards) -> StackBlock
 where
-    Towards: IntoArg<Text>,
+    Towards: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_pointtowards)
@@ -654,7 +651,7 @@ where
 ///  - "_mouse_" glide to mouse position
 pub fn point_towards_menu<Towards>(towards: Towards) -> MenuReporter
 where
-    Towards: IntoFieldArg,
+    Towards: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_pointtowards_menu)
@@ -666,7 +663,7 @@ where
 
 pub fn set_x<X>(x: X) -> StackBlock
 where
-    X: IntoArg<Number>,
+    X: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("X", x),
@@ -675,7 +672,7 @@ where
 
 pub fn set_y<Y>(y: Y) -> StackBlock
 where
-    Y: IntoArg<Number>,
+    Y: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_setx).add_input_into_arg("Y", y),
@@ -684,7 +681,7 @@ where
 
 pub fn change_x_by<By>(by: By) -> StackBlock
 where
-    By: IntoArg<Number>,
+    By: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_changexby).add_input_into_arg("DX", by),
@@ -693,7 +690,7 @@ where
 
 pub fn change_y_by<By>(by: By) -> StackBlock
 where
-    By: IntoArg<Number>,
+    By: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_changeyby).add_input_into_arg("DY", by),
@@ -712,7 +709,7 @@ pub fn if_on_edge_bounce() -> StackBlock {
 ///  - "all around"
 pub fn set_rotation_style<Style>(style: Style) -> StackBlock
 where
-    Style: IntoFieldArg,
+    Style: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::motion_setrotationstyle)
@@ -735,8 +732,8 @@ pub fn x_position() -> JustReporter<Number> {
 // Operators ===================================================================
 pub fn add<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Number>
 where
-    Lhs: IntoArg<Number>,
-    Rhs: IntoArg<Number>,
+    Lhs: IntoInput<Number>,
+    Rhs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_add)
@@ -748,8 +745,8 @@ where
 
 pub fn sub<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Number>
 where
-    Lhs: IntoArg<Number>,
-    Rhs: IntoArg<Number>,
+    Lhs: IntoInput<Number>,
+    Rhs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_subtract)
@@ -761,8 +758,8 @@ where
 
 pub fn mul<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Number>
 where
-    Lhs: IntoArg<Number>,
-    Rhs: IntoArg<Number>,
+    Lhs: IntoInput<Number>,
+    Rhs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_multiply)
@@ -774,8 +771,8 @@ where
 
 pub fn div<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Number>
 where
-    Lhs: IntoArg<Number>,
-    Rhs: IntoArg<Number>,
+    Lhs: IntoInput<Number>,
+    Rhs: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_divide)
@@ -787,8 +784,8 @@ where
 
 pub fn random<From, To>(from: From, to: To) -> JustReporter<Bool>
 where
-    From: IntoArg<Number>,
-    To: IntoArg<Number>,
+    From: IntoInput<Number>,
+    To: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_random)
@@ -800,8 +797,8 @@ where
 
 pub fn less_than<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Bool>
 where
-    Lhs: IntoArg<Value>,
-    Rhs: IntoArg<Value>,
+    Lhs: IntoInput<Value>,
+    Rhs: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_lt)
@@ -813,8 +810,8 @@ where
 
 pub fn greater_than<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Bool>
 where
-    Lhs: IntoArg<Value>,
-    Rhs: IntoArg<Value>,
+    Lhs: IntoInput<Value>,
+    Rhs: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_gt)
@@ -826,8 +823,8 @@ where
 
 pub fn equals<Lhs, Rhs>(lhs: Lhs, rhs: Rhs) -> JustReporter<Bool>
 where
-    Lhs: IntoArg<Value>,
-    Rhs: IntoArg<Value>,
+    Lhs: IntoInput<Value>,
+    Rhs: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_equals)
@@ -839,8 +836,8 @@ where
 
 pub fn and<A, B>(a: A, b: B) -> JustReporter<Bool>
 where
-    A: IntoArg<Bool>,
-    B: IntoArg<Bool>,
+    A: IntoInput<Bool>,
+    B: IntoInput<Bool>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_and)
@@ -852,8 +849,8 @@ where
 
 pub fn or<A, B>(a: A, b: B) -> JustReporter<Bool>
 where
-    A: IntoArg<Bool>,
-    B: IntoArg<Bool>,
+    A: IntoInput<Bool>,
+    B: IntoInput<Bool>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_or)
@@ -865,7 +862,7 @@ where
 
 pub fn not<Val>(val: Val) -> JustReporter<Bool>
 where
-    Val: IntoArg<Bool>,
+    Val: IntoInput<Bool>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_or).add_input_into_arg("OPERAND", val),
@@ -875,8 +872,8 @@ where
 
 pub fn join<TextA, TextB>(a: TextA, b: TextB) -> JustReporter<Text>
 where
-    TextA: IntoArg<Text>,
-    TextB: IntoArg<Text>,
+    TextA: IntoInput<Text>,
+    TextB: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_join)
@@ -888,8 +885,8 @@ where
 
 pub fn letter_of<Idx, TextA>(idx: Idx, text: TextA) -> JustReporter<Text>
 where
-    Idx: IntoArg<PositiveInteger>,
-    TextA: IntoArg<Text>,
+    Idx: IntoInput<PositiveInteger>,
+    TextA: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_letter_of)
@@ -901,7 +898,7 @@ where
 
 pub fn length_of<TextA>(text: TextA) -> JustReporter<PositiveInteger>
 where
-    TextA: IntoArg<Text>,
+    TextA: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_length).add_input_into_arg("STRING", text),
@@ -911,8 +908,8 @@ where
 
 pub fn contains<TextA, Contains>(text: TextA, contains: Contains) -> JustReporter<Bool>
 where
-    TextA: IntoArg<Text>,
-    Contains: IntoArg<Text>,
+    TextA: IntoInput<Text>,
+    Contains: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_contains)
@@ -924,8 +921,8 @@ where
 
 pub fn modulo<Dividend, Divisor>(dividend: Dividend, divisor: Divisor) -> JustReporter<Number>
 where
-    Dividend: IntoArg<Number>,
-    Divisor: IntoArg<Number>,
+    Dividend: IntoInput<Number>,
+    Divisor: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_mod)
@@ -937,7 +934,7 @@ where
 
 pub fn round<Val>(val: Val) -> JustReporter<Number>
 where
-    Val: IntoArg<Number>,
+    Val: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_round).add_input_into_arg("NUM", val),
@@ -962,8 +959,8 @@ where
 ///  - "10 ^"
 pub fn math_op<Op, Val>(op: Op, val: Val) -> JustReporter<Number>
 where
-    Op: IntoFieldArg,
-    Val: IntoArg<Number>,
+    Op: IntoField,
+    Val: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::operator_mathop)
@@ -981,7 +978,7 @@ where
 ///  - "_edge_"
 pub fn touching<What>(what: What) -> JustReporter<Bool>
 where
-    What: IntoArg<Text>,
+    What: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingobject)
@@ -997,7 +994,7 @@ where
 ///  - "_edge_"
 pub fn touching_menu<What>(what: What) -> MenuReporter
 where
-    What: IntoFieldArg,
+    What: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingobjectmenu)
@@ -1009,7 +1006,7 @@ where
 
 pub fn touching_color<Col>(color: Col) -> JustReporter<Bool>
 where
-    Col: IntoArg<Color>,
+    Col: IntoInput<Color>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_touchingcolor)
@@ -1020,8 +1017,8 @@ where
 
 pub fn color_touching_color<ColA, ColB>(color_a: ColA, color_b: ColB) -> JustReporter<Bool>
 where
-    ColA: IntoArg<Color>,
-    ColB: IntoArg<Color>,
+    ColA: IntoInput<Color>,
+    ColB: IntoInput<Color>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
@@ -1036,7 +1033,7 @@ where
 ///  - "_mouse_"
 pub fn distance_to<What>(what: What) -> JustReporter<Number>
 where
-    What: IntoArg<Text>,
+    What: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
@@ -1051,7 +1048,7 @@ where
 ///  - "_mouse_"
 pub fn distance_to_menu<What>(what: What) -> MenuReporter
 where
-    What: IntoFieldArg,
+    What: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_coloristouchingcolor)
@@ -1063,7 +1060,7 @@ where
 
 pub fn ask_and_wait<Msg>(prompt_message: Msg) -> StackBlock
 where
-    Msg: IntoArg<Text>,
+    Msg: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_askandwait)
@@ -1086,7 +1083,7 @@ pub fn answer() -> JustReporter<Text> {
 ///  - Letter a - z
 pub fn key_pressed<Key>(key: Key) -> JustReporter<Bool>
 where
-    Key: IntoArg<Text>,
+    Key: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_keypressed)
@@ -1107,7 +1104,7 @@ where
 ///  - Letter a - z
 pub fn key_menu<Key>(key: Key) -> MenuReporter
 where
-    Key: IntoArg<Text>,
+    Key: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_keyoptions)
@@ -1130,7 +1127,7 @@ pub fn mouse_x() -> JustReporter<Number> {
 ///  - "draggable"
 pub fn set_drag_mode<Mode>(mode: Mode) -> StackBlock
 where
-    Mode: IntoFieldArg,
+    Mode: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_setdragmode)
@@ -1173,8 +1170,8 @@ pub fn reset_timer() -> StackBlock {
 ///      - "volume"
 pub fn var_of<Var, What>(var: Var, what: What) -> JustReporter<Value>
 where
-    Var: IntoFieldArg,
-    What: IntoArg<Text>,
+    Var: IntoField,
+    What: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_of)
@@ -1190,7 +1187,7 @@ where
 ///   - "_stage_"
 pub fn var_of_object_menu<What>(what: What) -> MenuReporter
 where
-    What: IntoFieldArg,
+    What: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_of_object_menu)
@@ -1210,7 +1207,7 @@ where
 ///  - "YEAR"
 pub fn current_datetime<Fmt>(format: Fmt) -> JustReporter<PositiveInteger>
 where
-    Fmt: IntoFieldArg,
+    Fmt: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sensing_current)
@@ -1236,7 +1233,7 @@ pub fn username() -> JustReporter<Text> {
 ///  - Sound name
 pub fn play_sound_until_done<Sound>(sound: Sound) -> StackBlock
 where
-    Sound: IntoArg<Text>,
+    Sound: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_playuntildone)
@@ -1248,7 +1245,7 @@ where
 ///  - Sound name
 pub fn play_sound<Sound>(sound: Sound) -> StackBlock
 where
-    Sound: IntoArg<Text>,
+    Sound: IntoInput<Text>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_play).add_input_into_arg("SOUND_MENU", sound),
@@ -1260,7 +1257,7 @@ where
 ///  - Sound name
 pub fn sound_menu<Sound>(sound: Sound) -> MenuReporter
 where
-    Sound: IntoFieldArg,
+    Sound: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_sounds_menu)
@@ -1279,13 +1276,13 @@ pub fn stop_all_sound() -> StackBlock {
 ///  - "PAN"
 pub fn change_sound_effect_by<By, Fx>(effect: Fx, by: By) -> StackBlock
 where
-    By: IntoArg<Number>,
-    Fx: IntoFieldArg,
+    By: IntoInput<Number>,
+    Fx: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_changeeffectby)
             .add_input_into_arg("VALUE", by)
-            .add_field("EFFECT", effect.into_field_arg()),
+            .add_field("EFFECT", effect.into_field()),
     )
 }
 
@@ -1294,13 +1291,13 @@ where
 ///  - "PAN"
 pub fn set_sound_effect_to<To, Fx>(effect: Fx, to: To) -> StackBlock
 where
-    To: IntoArg<Number>,
-    Fx: IntoFieldArg,
+    To: IntoInput<Number>,
+    Fx: IntoField,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_seteffectto)
             .add_input_into_arg("VALUE", to)
-            .add_field("EFFECT", effect.into_field_arg()),
+            .add_field("EFFECT", effect.into_field()),
     )
 }
 
@@ -1310,7 +1307,7 @@ pub fn clear_sound_effects() -> StackBlock {
 
 pub fn set_volume_to<Vol>(volume: Vol) -> StackBlock
 where
-    Vol: IntoArg<Number>,
+    Vol: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_setvolumeto)
@@ -1320,7 +1317,7 @@ where
 
 pub fn change_volume_by<By>(by: By) -> StackBlock
 where
-    By: IntoArg<Number>,
+    By: IntoInput<Number>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::sound_changeeffectby)
@@ -1333,11 +1330,6 @@ pub fn volume() -> JustReporter<Number> {
 }
 
 // Data ========================================================================
-
-use crate::scripting::script_builder::BlockVarListBuilder;
-
-use super::*;
-
 pub fn sprite_var<Name>(name: Name) -> JustReporter<Value>
 where
     Name: Into<String>,
@@ -1370,8 +1362,8 @@ where
 
 pub fn set_var_to<Var, To>(var: Var, to: To) -> StackBlock
 where
-    Var: IntoFieldArg<Variable>,
-    To: IntoArg<Value>,
+    Var: IntoField<Variable>,
+    To: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_setvariableto)
@@ -1382,8 +1374,8 @@ where
 
 pub fn change_var_by<Var, By>(var: Var, by: By) -> StackBlock
 where
-    Var: IntoFieldArg<Variable>,
-    By: IntoArg<Value>,
+    Var: IntoField<Variable>,
+    By: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_changevariableby)
@@ -1394,7 +1386,7 @@ where
 
 pub fn show_var<Var>(var: Var) -> StackBlock
 where
-    Var: IntoFieldArg<Variable>,
+    Var: IntoField<Variable>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_showvariable).add_into_field("VARIABLE", var),
@@ -1403,7 +1395,7 @@ where
 
 pub fn hide_var<Var>(var: Var) -> StackBlock
 where
-    Var: IntoFieldArg<Variable>,
+    Var: IntoField<Variable>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_hidevariable).add_into_field("VARIABLE", var),
@@ -1412,7 +1404,7 @@ where
 
 pub fn add_to_list<Item>(item: Item) -> StackBlock
 where
-    Item: IntoArg<Value>,
+    Item: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_addtolist).add_input_into_arg("ITEM", item),
@@ -1421,8 +1413,8 @@ where
 
 pub fn delete_in_list<L, Idx>(list: L, idx: Idx) -> StackBlock
 where
-    Idx: IntoArg<Integer>,
-    L: IntoFieldArg<List>,
+    Idx: IntoInput<Integer>,
+    L: IntoField<List>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_deleteoflist)
@@ -1433,7 +1425,7 @@ where
 
 pub fn delete_all_in_list<L>(list: L) -> StackBlock
 where
-    L: IntoFieldArg<List>,
+    L: IntoField<List>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_deletealloflist).add_into_field("LIST", list),
@@ -1442,9 +1434,9 @@ where
 
 pub fn insert_in_list<L, Idx, Item>(list: L, idx: Idx, item: Item) -> StackBlock
 where
-    Idx: IntoArg<Integer>,
-    L: IntoFieldArg<List>,
-    Item: IntoArg<Value>,
+    Idx: IntoInput<Integer>,
+    L: IntoField<List>,
+    Item: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_insertatlist)
@@ -1456,9 +1448,9 @@ where
 
 pub fn replace_in_list<L, Idx, Item>(list: L, idx: Idx, item: Item) -> StackBlock
 where
-    Idx: IntoArg<Integer>,
-    L: IntoFieldArg<List>,
-    Item: IntoArg<Value>,
+    Idx: IntoInput<Integer>,
+    L: IntoField<List>,
+    Item: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_replaceitemoflist)
@@ -1470,8 +1462,8 @@ where
 
 pub fn item_in_list<L, Idx>(list: L, idx: Idx) -> JustReporter<Value>
 where
-    L: IntoFieldArg<List>,
-    Idx: IntoArg<Integer>,
+    L: IntoField<List>,
+    Idx: IntoInput<Integer>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_itemoflist)
@@ -1483,8 +1475,8 @@ where
 
 pub fn count_of_item_in_list<L, Item>(list: L, item: Item) -> JustReporter<Integer>
 where
-    L: IntoFieldArg<List>,
-    Item: IntoArg<Value>,
+    L: IntoField<List>,
+    Item: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_itemoflist)
@@ -1496,7 +1488,7 @@ where
 
 pub fn length_of_list<L>(list: L) -> JustReporter<Integer>
 where
-    L: IntoFieldArg<List>,
+    L: IntoField<List>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_lengthoflist).add_into_field("LIST", list),
@@ -1506,8 +1498,8 @@ where
 
 pub fn list_contains<L, Item>(list: L, item: Item) -> JustReporter<Bool>
 where
-    L: IntoFieldArg<List>,
-    Item: IntoArg<Value>,
+    L: IntoField<List>,
+    Item: IntoInput<Value>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_listcontainsitem)
@@ -1519,7 +1511,7 @@ where
 
 pub fn show_list<L>(list: L) -> StackBlock
 where
-    L: IntoFieldArg<List>,
+    L: IntoField<List>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_showlist).add_into_field("LIST", list),
@@ -1528,7 +1520,7 @@ where
 
 pub fn hide_list<L>(list: L) -> StackBlock
 where
-    L: IntoFieldArg<List>,
+    L: IntoField<List>,
 {
     TypedStackBuilder::start(
         BlockNormalBuilder::new(PrimaryOpCode::data_hidelist).add_into_field("LIST", list),

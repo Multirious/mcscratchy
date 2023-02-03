@@ -1,9 +1,5 @@
 use std::collections::HashMap;
 
-use super::{
-    arg::{Arg, IntoArg, IntoFieldArg, IntoStackArg},
-    typed_script_builder::TypedStackBuilder,
-};
 use crate::{project::target_builder::CommentBuilder, uid::Uid};
 use rs_sb3::{
     block::{
@@ -28,11 +24,16 @@ pub struct BlockInputBuilder {
 }
 
 impl BlockInputBuilder {
-    pub fn new(shadow: ShadowInputType) -> BlockInputBuilder {
+    pub fn new() -> BlockInputBuilder {
         BlockInputBuilder {
-            shadow,
+            shadow: ShadowInputType::NoShadow,
             values: vec![],
         }
+    }
+
+    pub fn shadow(mut self, shadow: ShadowInputType) -> Self {
+        self.shadow = shadow;
+        self
     }
 
     pub fn input(mut self, input: Option<StackOrValue>) -> Self {
@@ -40,12 +41,42 @@ impl BlockInputBuilder {
         self
     }
 
-    pub fn input_some(self, input: StackOrValue) -> Self {
-        self.input(Some(input))
+    /// Shortcut for
+    /// ```
+    /// BlockInputBuilder::new()
+    ///     .shadow(ShadowInputType::Shadow)
+    ///     .input(Some(StackOrValue::Value(value)))
+    /// ```
+    pub fn value(value: BlockInputValue) -> Self {
+        BlockInputBuilder::new()
+            .shadow(ShadowInputType::Shadow)
+            .input(Some(StackOrValue::Value(value)))
     }
 
-    pub fn input_none(self) -> Self {
-        self.input(None)
+    /// Shortcut for
+    /// ```
+    /// BlockInputBuilder::new()
+    ///     .shadow(ShadowInputType::NoShadow)
+    ///     .input(Some(StackOrValue::Stack(stack)))
+    /// ```
+    pub fn stack(stack: StackBuilder) -> Self {
+        BlockInputBuilder::new()
+            .shadow(ShadowInputType::NoShadow)
+            .input(Some(StackOrValue::Stack(stack)))
+    }
+
+    /// Shortcut for
+    /// ```
+    /// BlockInputBuilder::new()
+    ///     .shadow(ShadowInputType::ShadowObscured)
+    ///     .input(Some(StackOrValue::Stack(stack)))
+    ///     .input(Some(StackOrValue::Value(value)))
+    /// ```
+    pub fn stack_with_value_obscured(stack: StackBuilder, value: BlockInputValue) -> Self {
+        BlockInputBuilder::new()
+            .shadow(ShadowInputType::ShadowObscured)
+            .input(Some(StackOrValue::Stack(stack)))
+            .input(Some(StackOrValue::Value(value)))
     }
 
     /// Requires:
@@ -129,55 +160,55 @@ impl BlockNormalBuilder {
         self
     }
 
-    pub fn add_input_arg<K: Into<String>>(self, key: K, arg: Arg) -> Self {
-        match arg {
-            Arg::Value(v) => self.add_input(
-                key.into(),
-                BlockInputBuilder::new(ShadowInputType::Shadow).input_some(StackOrValue::Value(v)),
-            ),
-            Arg::Stack(b) => self.add_input(
-                key.into(),
-                BlockInputBuilder::new(ShadowInputType::NoShadow)
-                    .input_some(StackOrValue::Stack(b)),
-            ),
-        }
-    }
+    // pub fn add_input_arg<K: Into<String>>(self, key: K, arg: Arg) -> Self {
+    //     match arg {
+    //         Arg::Value(v) => self.add_input(
+    //             key.into(),
+    //             BlockInputBuilder::new(ShadowInputType::Shadow).input_some(StackOrValue::Value(v)),
+    //         ),
+    //         Arg::Stack(b) => self.add_input(
+    //             key.into(),
+    //             BlockInputBuilder::new(ShadowInputType::NoShadow)
+    //                 .input_some(StackOrValue::Stack(b)),
+    //         ),
+    //     }
+    // }
 
-    pub fn add_input_into_arg<K: Into<String>, A: IntoArg<AT>, AT>(self, key: K, arg: A) -> Self {
-        self.add_input_arg(key, arg.into_arg())
-    }
+    // pub fn add_input_into_arg<K: Into<String>, A: IntoInput<AT>, AT>(self, key: K, arg: A) -> Self {
+    //     self.add_input_arg(key, arg.into_arg())
+    // }
 
-    pub fn add_input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
-        self.inputs.insert(
-            key.into(),
-            BlockInputBuilder::new(ShadowInputType::NoShadow)
-                .input_some(StackOrValue::Stack(stack_builder)),
-        );
-        self
-    }
+    // pub fn add_input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
+    //     self.inputs.insert(
+    //         key.into(),
+    //         BlockInputBuilder::new(ShadowInputType::NoShadow)
+    //             .input_some(StackOrValue::Stack(stack_builder)),
+    //     );
+    //     self
+    // }
 
-    pub fn add_input_into_stack<K: Into<String>, S: IntoStackArg>(self, key: K, stack: S) -> Self {
-        self.add_input_stack(key, stack.into_stack_arg())
-    }
+    // pub fn add_input_into_stack<K: Into<String>, S: IntoStackArg>(self, key: K, stack: S) -> Self {
+    //     self.add_input_stack(key, stack.into_stack_builder())
+    // }
 
-    pub fn add_optional_input_stack<K: Into<String>>(
-        self,
-        key: K,
-        stack_builder: Option<StackBuilder>,
-    ) -> Self {
-        match stack_builder {
-            Some(stack_builder) => self.add_input_stack(key, stack_builder),
-            None => self,
-        }
-    }
+    // pub fn add_optional_input_stack<K: Into<String>>(
+    //     self,
+    //     key: K,
+    //     stack_builder: Option<StackBuilder>,
+    // ) -> Self {
+    //     match stack_builder {
+    //         Some(stack_builder) => self.add_input_stack(key, stack_builder),
+    //         None => self,
+    //     }
+    // }
 
-    pub fn add_optional_into_input_stack<K: Into<String>, IS: IntoStackArg>(
-        self,
-        key: K,
-        stack: Option<IS>,
-    ) -> Self {
-        self.add_optional_input_stack(key, stack.map(IntoStackArg::into_stack_arg))
-    }
+    // pub fn add_optional_into_input_stack<K: Into<String>, IS: IntoStackArg>(
+    //     self,
+    //     key: K,
+    //     stack: Option<IS>,
+    // ) -> Self {
+    //     self.add_optional_input_stack(key, stack.map(IntoStackArg::into_stack_builder))
+    // }
 
     pub fn add_field<S: Into<String>>(
         mut self,
@@ -188,14 +219,14 @@ impl BlockNormalBuilder {
         self
     }
 
-    pub fn add_into_field<S: Into<String>, F: IntoFieldArg<FT>, FT>(
-        mut self,
-        key: S,
-        field: F,
-    ) -> Self {
-        self.fields.insert(key.into(), field.into_field_arg());
-        self
-    }
+    // pub fn add_into_field<S: Into<String>, F: IntoField<FT>, FT>(
+    //     mut self,
+    //     key: S,
+    //     field: F,
+    // ) -> Self {
+    //     self.fields.insert(key.into(), field.into_field());
+    //     self
+    // }
 
     pub fn shadow(mut self, is_shadow: bool) -> Self {
         self.shadow = is_shadow;
@@ -561,11 +592,5 @@ impl StackBuilder {
                 (stack_b, first_block_uid)
             }
         }
-    }
-}
-
-impl<S, E> From<TypedStackBuilder<S, E>> for StackBuilder {
-    fn from(value: TypedStackBuilder<S, E>) -> Self {
-        value.into_untyped()
     }
 }

@@ -76,6 +76,14 @@ impl<S, E> TypedStackBuilder<S, E> {
         self.stack_builder.mut_move_head(x, y);
         self
     }
+
+    pub fn assume_typed(stack_builder: StackBuilder) -> TypedStackBuilder<S, E> {
+        TypedStackBuilder {
+            stack_builder,
+            start: PhantomData,
+            end: PhantomData,
+        }
+    }
 }
 
 impl<S> TypedStackBuilder<S, StackableSide> {

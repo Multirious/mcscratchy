@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use super::{
-    arg::{Arg, Bool, IntoArg, IntoStackArg},
-    script_builder::StackBuilder,
-    typed_blocks::{if_ as if_block, if_else as if_else_block},
+    arg::{Bool, IntoInput, Stack},
+    blocks::{if_ as if_block, if_else as if_else_block},
+    script_builder::BlockInputBuilder,
     typed_script_builder::{StackBlock, TypedStackBuilder},
 };
 
@@ -13,28 +13,28 @@ pub struct End;
 
 pub fn if_<Cond, Then>(cond: Cond, then: Option<Then>) -> IfElseChainBuilder<Building>
 where
-    Cond: IntoArg<Bool>,
-    Then: IntoStackArg,
+    Cond: IntoInput<Bool>,
+    Then: IntoInput<Stack>,
 {
     IfElseChainBuilder::if_(cond, then)
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IfElseChainBuilder<S> {
-    if_: (Arg, Option<StackBuilder>),
-    else_ifs: Vec<(Arg, Option<StackBuilder>)>,
-    else_: Option<Option<StackBuilder>>,
+    if_: (BlockInputBuilder, Option<BlockInputBuilder>),
+    else_ifs: Vec<(BlockInputBuilder, Option<BlockInputBuilder>)>,
+    else_: Option<Option<BlockInputBuilder>>,
     marker: PhantomData<S>,
 }
 
 impl IfElseChainBuilder<Init> {
     pub fn if_<Cond, Then>(cond: Cond, then: Option<Then>) -> IfElseChainBuilder<Building>
     where
-        Cond: IntoArg<Bool>,
-        Then: IntoStackArg,
+        Cond: IntoInput<Bool>,
+        Then: IntoInput<Stack>,
     {
         IfElseChainBuilder {
-            if_: (cond.into_arg(), then.map(|s| s.into_stack_arg())),
+            if_: (cond.into_input(), then.map(|s| s.into_input())),
             else_ifs: vec![],
             else_: None,
             marker: PhantomData,
@@ -49,19 +49,19 @@ impl IfElseChainBuilder<Building> {
         then: Option<Then>,
     ) -> IfElseChainBuilder<Building>
     where
-        Cond: IntoArg<Bool>,
-        Then: IntoStackArg,
+        Cond: IntoInput<Bool>,
+        Then: IntoInput<Stack>,
     {
         self.else_ifs
-            .push((cond.into_arg(), then.map(IntoStackArg::into_stack_arg)));
+            .push((cond.into_input(), then.map(IntoInput::<Stack>::into_input)));
         self
     }
 
     pub fn else_<End>(mut self, else_: Option<End>) -> IfElseChainBuilder<End>
     where
-        End: IntoStackArg,
+        End: IntoInput<Stack>,
     {
-        self.else_ = Some(else_.map(IntoStackArg::into_stack_arg));
+        self.else_ = Some(else_.map(IntoInput::<Stack>::into_input));
         let IfElseChainBuilder {
             if_,
             else_ifs,
@@ -86,7 +86,7 @@ impl<S> IfElseChainBuilder<S> {
             marker: _,
         } = self;
         // not very readable - fix later
-        match (else_ifs.len(), else_) {
+        let b = match (else_ifs.len(), else_) {
             (0, None) => if_block(if_.0, if_.1),
             (0, Some(else_)) => if_else_block(if_.0, if_.1, else_),
             (_, None) => {
@@ -98,15 +98,23 @@ impl<S> IfElseChainBuilder<S> {
                 };
                 match else_ifs_rev_iter.next() {
                     Some((parent_a, parent_subtack)) => {
-                        let mut prev_parent =
-                            if_else_block(parent_a, parent_subtack, Some(last_else_if));
+                        let mut prev_parent = if_else_block(
+                            parent_a,
+                            parent_subtack,
+                            Some(BlockInputBuilder::stack(last_else_if)),
+                        );
                         for (parent_a, parent_substack) in else_ifs_rev_iter {
-                            prev_parent =
-                                if_else_block(parent_a, parent_substack, Some(prev_parent));
+                            prev_parent = if_else_block(
+                                parent_a,
+                                parent_substack,
+                                Some(BlockInputBuilder::stack(prev_parent)),
+                            );
                         }
-                        if_else_block(if_.0, if_.1, Some(prev_parent))
+                        if_else_block(if_.0, if_.1, Some(BlockInputBuilder::stack(prev_parent)))
                     }
-                    None => if_else_block(if_.0, if_.1, Some(last_else_if)),
+                    None => {
+                        if_else_block(if_.0, if_.1, Some(BlockInputBuilder::stack(last_else_if)))
+                    }
                 }
             }
             (_, Some(else_)) => {
@@ -117,14 +125,18 @@ impl<S> IfElseChainBuilder<S> {
                     Some((parent_a, parent_subtack)) => {
                         let mut prev_parent = if_else_block(parent_a, parent_subtack, last_else);
                         for (parent_a, parent_substack) in else_ifs_rev_iter {
-                            prev_parent =
-                                if_else_block(parent_a, parent_substack, Some(prev_parent));
+                            prev_parent = if_else_block(
+                                parent_a,
+                                parent_substack,
+                                Some(BlockInputBuilder::stack(prev_parent)),
+                            );
                         }
-                        if_else_block(if_.0, if_.1, Some(prev_parent))
+                        if_else_block(if_.0, if_.1, Some(BlockInputBuilder::stack(prev_parent)))
                     }
                     None => if_else_block(if_.0, if_.1, last_else),
                 }
             }
-        }
+        };
+        TypedStackBuilder::assume_typed(b)
     }
 }
