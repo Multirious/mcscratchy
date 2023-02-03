@@ -171,6 +171,12 @@ pub fn when_key_pressed(key: BFB) -> StackBuilder {
     )
 }
 
+pub fn when_this_sprite_clicked() -> StackBuilder {
+    StackBuilder::start(BlockNormalBuilder::new(
+        PrimaryOpCode::event_whenthisspriteclicked,
+    ))
+}
+
 /// Accepts:
 ///  - Backdrop name
 pub fn when_backdrop_switches_to(backdrop: BFB) -> StackBuilder {
