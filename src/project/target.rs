@@ -1,151 +1,28 @@
-use rs_sb3::{string_hashmap::StringHashMap, value::Value};
+use std::collections::HashMap;
 
-use crate::scripting::script_builder::{StackBuilder, TargetContext};
+use rs_sb3::{
+    asset::{Costume, Sound},
+    block::Block,
+    broadcast::Broadcast,
+    comment::Comment,
+    list::List,
+    string_hashmap::StringHashMap,
+    target::{RotationStyle, Sprite, Stage, Target, VideoState},
+    variable::Variable,
+};
 
-use super::*;
-use resource::{Resource, ValidResource};
+use crate::{
+    scripting::script_builder::{StackBuilder, TargetContext},
+    uid::Uid,
+};
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct VariableBuilder {
-    value: Value,
-    /// Cloud variable can only store number. Becareful!
-    is_cloud_variable: bool,
-}
+use super::{
+    asset::{CostumeBuilder, SoundBuilder},
+    file::Resource,
+    script::{CommentBuilder, ListBuilder, VariableBuilder},
+};
 
-impl VariableBuilder {
-    pub fn new(starting_value: Value) -> VariableBuilder {
-        VariableBuilder {
-            value: starting_value,
-            is_cloud_variable: false,
-        }
-    }
-
-    pub fn new_cloud_variable(starting_value: Value) -> VariableBuilder {
-        debug_assert!(matches!(starting_value, Value::Number(_)));
-        VariableBuilder {
-            value: starting_value,
-            is_cloud_variable: true,
-        }
-    }
-
-    pub fn build(self, name_for_this_var: String) -> (Variable, Uid) {
-        let VariableBuilder {
-            value,
-            is_cloud_variable,
-        } = self;
-        let my_uid = Uid::generate();
-        let var = Variable {
-            name: name_for_this_var,
-            value,
-            is_cloud_variable,
-        };
-        (var, my_uid)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ListBuilder {
-    values: Vec<Value>,
-}
-
-impl ListBuilder {
-    pub fn new(values: Vec<Value>) -> ListBuilder {
-        ListBuilder { values }
-    }
-
-    pub fn build(self, name_for_this_list: String) -> (List, Uid) {
-        let ListBuilder { values } = self;
-        let my_uid = Uid::generate();
-        let list = List {
-            name: name_for_this_list,
-            values,
-        };
-        (list, my_uid)
-    }
-}
-
-#[rustfmt::skip]
-#[derive(Debug, Clone, PartialEq)]
-pub struct CommentBuilder {
-    block_uid: Option<Uid>,
-    x:         Option<f64>,
-    y:         Option<f64>,
-    width:     u64,
-    height:    u64,
-    minimized: bool,
-    content:   String,
-}
-
-impl CommentBuilder {
-    pub fn new<S: Into<String>>(content: S) -> CommentBuilder {
-        CommentBuilder {
-            content: content.into(),
-            ..Default::default()
-        }
-    }
-
-    pub fn pos(mut self, x: f64, y: f64) -> Self {
-        self.x = Some(x);
-        self.y = Some(y);
-        self
-    }
-
-    pub fn size(mut self, width: u64, height: u64) -> Self {
-        self.width = width;
-        self.height = height;
-        self
-    }
-
-    pub fn minimized(mut self, minimized: bool) -> Self {
-        self.minimized = minimized;
-        self
-    }
-
-    /// Requires:
-    /// - block_uid?: To connect the block with comment
-    ///
-    /// Returns:
-    /// - [`Uid`]: [`Uid`] of the built comment inside [`Target`]'s comment list
-    pub fn build(self) -> (Comment, Uid) {
-        let CommentBuilder {
-            block_uid,
-            x,
-            y,
-            width,
-            height,
-            minimized,
-            content,
-        } = self;
-        let my_uid = Uid::generate();
-        let comment = Comment {
-            block_id: block_uid.map(|u| u.into_inner()),
-            x: x.map(|n| n.into()),
-            y: y.map(|n| n.into()),
-            width: (width as i64).into(),
-            height: (height as i64).into(),
-            minimized,
-            text: content,
-        };
-        (comment, my_uid)
-    }
-}
-
-impl Default for CommentBuilder {
-    #[rustfmt::skip]
-    fn default() -> Self {
-        CommentBuilder {
-            block_uid: None,
-            x:         Some(0.),
-            y:         Some(0.),
-            width:     200,
-            height:    200,
-            minimized: false,
-            content:   "".to_owned(),
-        }
-    }
-}
-
-pub struct GlobalVarListBuf {
+pub struct GlobalVarListContext {
     vars: HashMap<String, Uid>,
     lists: HashMap<String, Uid>,
 }
@@ -193,7 +70,7 @@ impl TargetBuilder {
         self
     }
 
-    pub fn add_block_stacks<SB: Into<StackBuilder>>(mut self, stack_builder: SB) -> Self {
+    pub fn add_block_stack(mut self, stack_builder: StackBuilder) -> Self {
         self.block_stackes.push(stack_builder.into());
         self
     }
@@ -233,9 +110,9 @@ impl TargetBuilder {
     pub fn build(
         self,
         file_buff: &mut Vec<Resource>,
-        global_varlist_buf: Option<&GlobalVarListBuf>,
+        global_varlist_buf: Option<&GlobalVarListContext>,
         all_broadcasts: &HashMap<String, Uid>,
-    ) -> (Target, Option<GlobalVarListBuf>) {
+    ) -> (Target, Option<GlobalVarListContext>) {
         let TargetBuilder {
             name,
             variables,
@@ -333,7 +210,7 @@ impl TargetBuilder {
             target,
             match global_varlist_buf {
                 Some(_) => None,
-                None => Some(GlobalVarListBuf {
+                None => Some(GlobalVarListContext {
                     vars: variable_ctx,
                     lists: list_ctx,
                 }),
@@ -358,103 +235,6 @@ impl Default for TargetBuilder {
             layer_order:     0,
             volume:          100.,
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CostumeBuilder {
-    rotation_center_x: i64,
-    rotation_center_y: i64,
-    asset: AssetBuilder,
-}
-
-impl CostumeBuilder {
-    pub fn new(asset_builder: AssetBuilder) -> CostumeBuilder {
-        CostumeBuilder {
-            asset: asset_builder,
-            rotation_center_x: 0,
-            rotation_center_y: 0,
-        }
-    }
-
-    pub fn rotation_center(mut self, x: i64, y: i64) -> Self {
-        self.rotation_center_x = x;
-        self.rotation_center_y = y;
-        self
-    }
-
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Costume {
-        let CostumeBuilder {
-            rotation_center_x,
-            rotation_center_y,
-            asset,
-        } = self;
-        Costume {
-            rotation_center_x: rotation_center_x.into(),
-            rotation_center_y: rotation_center_y.into(),
-            bitmap_resolution: Some(1),
-            asset: asset.build(file_buff),
-        }
-    }
-}
-
-/// Not really sure what to do here yet
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SoundBuilder {
-    rate: u64,
-    sample_count: u64,
-    format: Option<String>,
-    asset: AssetBuilder,
-}
-
-impl SoundBuilder {
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Sound {
-        let SoundBuilder {
-            rate,
-            sample_count,
-            format,
-            asset,
-        } = self;
-        Sound {
-            rate,
-            sample_count,
-            format,
-            asset: asset.build(file_buff),
-        }
-    }
-}
-
-/// Not really sure what to do here yet
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AssetBuilder {
-    name: String,
-    file: ValidResource,
-}
-
-impl AssetBuilder {
-    pub fn new<S: Into<String>>(name: S, file: ValidResource) -> AssetBuilder {
-        AssetBuilder {
-            name: name.into(),
-            file,
-        }
-    }
-
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Asset {
-        let AssetBuilder { name, file } = self;
-        let md5_hash = resource::hex(&file.md5_hash());
-        let extension = file.extension;
-        let asset = Asset {
-            asset_id: md5_hash.clone(),
-            name,
-            md5ext: Some(md5_hash.clone() + "." + &extension),
-            data_format: extension.clone(),
-        };
-        let md5_path: std::path::PathBuf = md5_hash.into();
-        file_buff.push(Resource {
-            path: md5_path.with_extension(extension),
-            content: file.file.content,
-        });
-        asset
     }
 }
 
@@ -501,7 +281,7 @@ impl StageBuilder {
         self,
         file_buff: &mut Vec<Resource>,
         all_broadcasts: &HashMap<String, Uid>,
-    ) -> (Stage, GlobalVarListBuf) {
+    ) -> (Stage, GlobalVarListContext) {
         let StageBuilder {
             target,
             tempo,
@@ -596,7 +376,7 @@ impl SpriteBuilder {
     pub fn build(
         self,
         file_buff: &mut Vec<Resource>,
-        global_varlist_buf: &GlobalVarListBuf,
+        global_varlist_buf: &GlobalVarListContext,
         all_broadcasts: &HashMap<String, Uid>,
     ) -> Sprite {
         let SpriteBuilder {

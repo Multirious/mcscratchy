@@ -1,13 +1,14 @@
 use std::marker::PhantomData;
 
-use crate::derive_everything;
+use crate::scripting::script_builder::{
+    BlockBuilder, BlockNormalBuilder, BlockVarListBuilder, StackBuilder,
+};
 
-use super::script_builder::{BlockBuilder, BlockNormalBuilder, BlockVarListBuilder, StackBuilder};
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct StackableSide;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct UnstackableSide;
 
-derive_everything! {
-    pub struct StackableSide;
-    pub struct UnstackableSide;
-}
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reporter<T, S, E>(pub TypedStackBuilder<S, E>, pub PhantomData<T>);
 
@@ -29,10 +30,6 @@ pub type CapBlock = TypedStackBuilder<StackableSide, UnstackableSide>;
 pub type StackBlock = TypedStackBuilder<StackableSide, StackableSide>;
 pub type MenuReporter = JustReporter<super::arg::Text>;
 
-/// Build **1** stack of scratch block
-/// The generic S is type of side of the starting block.
-/// The generic E is type of side of the ending block.
-/// They're here for figuring out of these 2 block can connect each other in compile time.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypedStackBuilder<S, E> {
     stack_builder: StackBuilder,
@@ -98,10 +95,5 @@ impl<S> TypedStackBuilder<S, StackableSide> {
             start: PhantomData,
             end: PhantomData,
         }
-    }
-
-    /// This is use for macro
-    pub fn nothing(self) -> Self {
-        self
     }
 }

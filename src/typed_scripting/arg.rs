@@ -1,45 +1,50 @@
-use rs_sb3::block::{BlockInputValue, ShadowInputType};
+use rs_sb3::block::BlockInputValue;
 
-use crate::derive_everything;
+use crate::scripting::script_builder::{BlockFieldBuilder, BlockInputBuilder, FieldKind};
 
-use super::{
-    script_builder::BlockFieldBuilder,
-    script_builder::{BlockInputBuilder, FieldKind, StackBuilder, StackOrValue},
-    typed_script_builder::{Reporter, StackableSide, TypedStackBuilder},
-};
+use super::script_builder::{Reporter, StackableSide, TypedStackBuilder};
 
-derive_everything! {
-    pub struct Number;
-    pub struct PositiveNumber;
-    pub struct PositiveInteger;
-    pub struct Integer;
-    pub struct Float;
-    pub struct Angle;
-    pub struct Color;
-    pub struct Text;
-    pub struct Bool;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Number;
 
-    pub struct Value; // Could be type text or number
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct PositiveNumber;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct PositiveInteger;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Integer;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Float;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Angle;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Color;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Text;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Bool;
 
-    pub struct Stack;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Value; // Could be type text or number
 
-    // this is for IntoFieldArg when there's no id field
-    pub struct NoRef;
-    // this is for IntoFieldArg when there's an id field but i've never seen it has id
-    pub struct NoRefMaybe;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Stack;
 
-    pub struct Broadcast;
-    pub struct Variable;
-    pub struct List;
-}
+// this is for IntoFieldArg when there's no id field
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct NoRef;
+// this is for IntoFieldArg when there's an id field but i've never seen it has id
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct NoRefMaybe;
 
-// Arg =========================================================================
-#[derive(Debug, Clone, PartialEq)]
-pub enum Arg {
-    Value(BlockInputValue),
-    Stack(StackBuilder, Option<BlockInputValue>),
-}
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Broadcast;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Variable;
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct List;
 
+// Input =========================================================================
 pub trait IntoInput<T> {
     fn into_input(self) -> BlockInputBuilder;
 }
@@ -118,12 +123,14 @@ impl<S: Into<String>> IntoField<Broadcast> for S {
     }
 }
 
-derive_everything! {
-    pub struct GlobalVar<S: Into<String>>(pub S);
-    pub struct SpriteVar<S: Into<String>>(pub S);
-    pub struct GlobalList<S: Into<String>>(pub S);
-    pub struct SpriteList<S: Into<String>>(pub S);
-}
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct GlobalVar<S: Into<String>>(pub S);
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct SpriteVar<S: Into<String>>(pub S);
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct GlobalList<S: Into<String>>(pub S);
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct SpriteList<S: Into<String>>(pub S);
 
 impl<S: Into<String>> IntoField<Variable> for GlobalVar<S> {
     fn into_field(self) -> BlockFieldBuilder {

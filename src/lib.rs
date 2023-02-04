@@ -1,35 +1,41 @@
 pub mod opcode;
 pub mod project;
 pub mod scripting;
+pub mod typed_scripting;
 pub mod uid;
-
-macro_rules! derive_everything {
-    ($($item:item)*) => {
-        $(
-            #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)] $item
-        )*
-    };
-}
-
-pub(crate) use derive_everything;
-use scripting::script_builder::StackBuilder;
+pub mod utils;
 
 #[cfg(test)]
 mod test {
-    use super::scripting::if_else_builder::if_;
-    use super::{
-        project::{target_builder::*, ProjectBuilder},
-        scripting::{
-            arg::{GlobalList, GlobalVar, SpriteList, SpriteVar},
-            typed_blocks::*,
-            typed_script_builder::HatBlock,
-        },
+    #[allow(unused_imports)]
+    use super::typed_scripting::{
+        arg::{GlobalList, GlobalVar, SpriteList, SpriteVar},
+        blocks::*,
+        if_else_chain_builder::if_,
     };
-    use crate::project::resource::{ProjectFileBuilder, Resource};
+    use crate::project::{
+        asset::{AssetBuilder, CostumeBuilder},
+        file::{ProjectFileBuilder, Resource},
+        script::{CommentBuilder, VariableBuilder},
+        target::{SpriteBuilder, StageBuilder, TargetBuilder},
+        ProjectBuilder,
+    };
     use std::env::var as envvar;
 
     #[test]
     fn test_creating_project() {
+        let export_dir = envvar("EXPORT_DIR").expect("EXPORT_DIR env");
+        let export_name = envvar("EXPORT_NAME").expect("EXPORT_NAME env");
+
+        let stage_inner = TargetBuilder::new("Stage")
+            .add_costume(CostumeBuilder::new(AssetBuilder::new(
+                "backdrop1",
+                Resource::load_and_verify("blank.svg").unwrap().unwrap(),
+            )))
+            .add_comment(CommentBuilder::new("hi"));
+        let stage = StageBuilder::new(stage_inner);
+
+        #[rustfmt::skip]
         let start = when_flag_clicked().next(forever(Some(
             if_(
                 equals(sprite_var("num"), 1),
@@ -42,27 +48,17 @@ mod test {
             .end(),
         )));
 
-        let export_dir = envvar("EXPORT_DIR").expect("EXPORT_DIR env");
-        let export_name = envvar("EXPORT_NAME").expect("EXPORT_NAME env");
-        let project = ProjectBuilder::new()
-            .set_stage(StageBuilder::new(
-                TargetBuilder::new("Stage")
-                    .add_costume(CostumeBuilder::new(AssetBuilder::new(
-                        "backdrop1",
-                        Resource::load_and_verify("blank.svg").unwrap().unwrap(),
-                    )))
-                    .add_comment(CommentBuilder::new("hi")),
-            ))
-            .add_sprite(SpriteBuilder::new(
-                TargetBuilder::new("Cat")
-                    .add_block_stacks(start)
-                    .add_variable("num", VariableBuilder::new(1.into()))
-                    .add_costume(CostumeBuilder::new(AssetBuilder::new(
-                        "costume1",
-                        Resource::load_and_verify("cat.svg").unwrap().unwrap(),
-                    )))
-                    .layer_order(1),
-            ));
+        let sprite_inner = TargetBuilder::new("Cat")
+            .add_block_stack(start.into_untyped())
+            .add_variable("num", VariableBuilder::new(1.into()))
+            .add_costume(CostumeBuilder::new(AssetBuilder::new(
+                "costume1",
+                Resource::load_and_verify("cat.svg").unwrap().unwrap(),
+            )))
+            .layer_order(1);
+        let sprite = SpriteBuilder::new(sprite_inner);
+
+        let project = ProjectBuilder::new().set_stage(stage).add_sprite(sprite);
         ProjectFileBuilder::new(project)
             .name(export_name)
             .path(export_dir)

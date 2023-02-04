@@ -1,22 +1,20 @@
 use std::marker::PhantomData;
 
-use super::{
-    arg::{Bool, IntoInput, Stack},
+use super::{arg::*, script_builder::*};
+use crate::scripting::{
     blocks::{if_ as if_block, if_else as if_else_block},
     script_builder::BlockInputBuilder,
-    typed_script_builder::{StackBlock, TypedStackBuilder},
 };
 
-pub struct Init;
 pub struct Building;
 pub struct End;
 
-pub fn if_<Cond, Then>(cond: Cond, then: Option<Then>) -> IfElseChainBuilder<Building>
-where
-    Cond: IntoInput<Bool>,
-    Then: IntoInput<Stack>,
-{
-    IfElseChainBuilder::if_(cond, then)
+/// Shortcut to `IfElseChainBuilder::if_`
+pub fn if_(
+    cond: impl IntoInput<Bool>,
+    then: Option<impl IntoInput<Stack>>,
+) -> IfElseChainBuilder<Building> {
+    IfElseChainBuilder::<Building>::if_(cond, then)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,40 +25,18 @@ pub struct IfElseChainBuilder<S> {
     marker: PhantomData<S>,
 }
 
-impl IfElseChainBuilder<Init> {
-    pub fn if_<Cond, Then>(cond: Cond, then: Option<Then>) -> IfElseChainBuilder<Building>
-    where
-        Cond: IntoInput<Bool>,
-        Then: IntoInput<Stack>,
-    {
-        IfElseChainBuilder {
-            if_: (cond.into_input(), then.map(|s| s.into_input())),
-            else_ifs: vec![],
-            else_: None,
-            marker: PhantomData,
-        }
-    }
-}
-
 impl IfElseChainBuilder<Building> {
-    pub fn else_if<Cond, Then>(
+    pub fn else_if(
         mut self,
-        cond: Cond,
-        then: Option<Then>,
-    ) -> IfElseChainBuilder<Building>
-    where
-        Cond: IntoInput<Bool>,
-        Then: IntoInput<Stack>,
-    {
+        cond: impl IntoInput<Bool>,
+        then: Option<impl IntoInput<Stack>>,
+    ) -> IfElseChainBuilder<Building> {
         self.else_ifs
             .push((cond.into_input(), then.map(IntoInput::<Stack>::into_input)));
         self
     }
 
-    pub fn else_<End>(mut self, else_: Option<End>) -> IfElseChainBuilder<End>
-    where
-        End: IntoInput<Stack>,
-    {
+    pub fn else_(mut self, else_: Option<impl IntoInput<Stack>>) -> IfElseChainBuilder<End> {
         self.else_ = Some(else_.map(IntoInput::<Stack>::into_input));
         let IfElseChainBuilder {
             if_,
@@ -78,6 +54,18 @@ impl IfElseChainBuilder<Building> {
 }
 
 impl<S> IfElseChainBuilder<S> {
+    pub fn if_(
+        cond: impl IntoInput<Bool>,
+        then: Option<impl IntoInput<Stack>>,
+    ) -> IfElseChainBuilder<Building> {
+        IfElseChainBuilder {
+            if_: (cond.into_input(), then.map(|s| s.into_input())),
+            else_ifs: vec![],
+            else_: None,
+            marker: PhantomData,
+        }
+    }
+
     pub fn end(self) -> StackBlock {
         let IfElseChainBuilder {
             if_,

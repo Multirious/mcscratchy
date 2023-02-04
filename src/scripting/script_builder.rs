@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{project::target_builder::CommentBuilder, uid::Uid};
+use crate::{project::script::CommentBuilder, uid::Uid};
 use rs_sb3::{
     block::{
         Block, BlockField, BlockInput, BlockInputValue, BlockMutation, BlockNormal,
@@ -513,6 +513,15 @@ impl StackBuilder {
         let mut stack = Vec::with_capacity(capacity);
         stack.push(block);
         StackBuilder { stack }
+    }
+
+    pub fn with_capacity(capacity: usize) -> StackBuilder {
+        let stack = Vec::with_capacity(capacity);
+        StackBuilder { stack }
+    }
+
+    pub fn new() -> StackBuilder {
+        StackBuilder { stack: Vec::new() }
     }
 
     pub fn next(mut self, mut next_stack: StackBuilder) -> StackBuilder {

@@ -14,10 +14,6 @@ use crate::opcode::PrimaryOpCode;
 use crate::scripting::script_builder::BlockVarListBuilder;
 use rs_sb3::block::{BlockMutation, BlockMutationEnum, ListOrVariable};
 
-// Why don't I put this in different file?
-// It's kinda easier to refactor because this is all just implementation
-
-// Use search on your editor to go through sections
 // Control
 // Event
 // Looks

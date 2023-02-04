@@ -1,24 +1,20 @@
 use std::collections::HashMap;
 
+use crate::uid::Uid;
 use rs_sb3::{
-    asset::{Asset, Costume, Sound},
-    block::Block,
-    broadcast::Broadcast,
-    comment::Comment,
-    list::List,
     monitor::Monitor,
     project::{Meta, Project},
-    target::{RotationStyle, Sprite, SpriteOrStage, Stage, Target, VideoState},
-    variable::Variable,
+    target::SpriteOrStage,
 };
+use target::{SpriteBuilder, StageBuilder};
 
-use crate::uid::Uid;
-use target_builder::{SpriteBuilder, StageBuilder};
+use self::file::Resource;
 
-use self::resource::Resource;
+pub mod file;
 
-pub mod resource;
-pub mod target_builder;
+pub mod asset;
+pub mod script;
+pub mod target;
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, PartialEq)]
