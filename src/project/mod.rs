@@ -8,9 +8,7 @@ use rs_sb3::{
 };
 use target::{SpriteBuilder, StageBuilder};
 
-use self::file::Resource;
-
-pub mod file;
+use crate::resource::Resource;
 
 pub mod asset;
 pub mod script;
@@ -42,7 +40,7 @@ impl ProjectBuilder {
 }
 
 impl ProjectBuilder {
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Project {
+    pub fn build(self, res_buf: &mut Vec<Resource>) -> Project {
         let ProjectBuilder {
             stage_builder,
             sprite_builders,
@@ -63,11 +61,11 @@ impl ProjectBuilder {
             .collect::<HashMap<_, _>>();
 
         let mut targets = Vec::with_capacity(1 + sprite_builders.len());
-        let (stage, global_varlist_buf) = stage_builder.build(file_buff, &all_broadcasts);
+        let (stage, global_varlist_buf) = stage_builder.build(res_buf, &all_broadcasts);
         targets.push(SpriteOrStage::Stage(stage));
         targets.extend(sprite_builders.into_iter().map(|sprite_builder| {
             SpriteOrStage::Sprite(sprite_builder.build(
-                file_buff,
+                res_buf,
                 &global_varlist_buf,
                 &all_broadcasts,
             ))

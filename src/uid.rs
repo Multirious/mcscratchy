@@ -1,5 +1,7 @@
 use rand::prelude::*;
 
+// TODO: no collision
+
 const SOUP: &str =
     "!#%()*+,-./:;=?@[]^_`{|}~ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 const SOUP_LEN: usize = SOUP.len();
@@ -22,23 +24,15 @@ impl Uid {
         Uid(uid())
     }
 
+    pub fn new<S: Into<String>>(uid: S) -> Uid {
+        Uid(uid.into())
+    }
+
     pub fn inner(&self) -> &str {
         &self.0
     }
 
     pub fn into_inner(self) -> String {
         self.0
-    }
-}
-
-impl From<String> for Uid {
-    fn from(value: String) -> Self {
-        Uid(value)
-    }
-}
-
-impl From<&str> for Uid {
-    fn from(value: &str) -> Self {
-        Uid(value.to_owned())
     }
 }

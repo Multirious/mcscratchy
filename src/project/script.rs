@@ -103,7 +103,7 @@ impl CommentBuilder {
     ///
     /// Returns:
     /// - [`Uid`]: [`Uid`] of the built comment inside [`Target`]'s comment list
-    pub fn build(self) -> (Comment, Uid) {
+    pub fn build(self) -> Comment {
         let CommentBuilder {
             block_uid,
             x,
@@ -113,7 +113,6 @@ impl CommentBuilder {
             minimized,
             content,
         } = self;
-        let my_uid = Uid::generate();
         let comment = Comment {
             block_id: block_uid.map(|u| u.into_inner()),
             x: x.map(|n| n.into()),
@@ -123,7 +122,7 @@ impl CommentBuilder {
             minimized,
             text: content,
         };
-        (comment, my_uid)
+        comment
     }
 }
 

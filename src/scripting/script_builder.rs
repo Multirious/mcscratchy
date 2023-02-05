@@ -79,16 +79,11 @@ impl BlockInputBuilder {
             .input(Some(StackOrValue::Value(value)))
     }
 
-    /// Requires:
-    /// - comment_buff: To continue building into [`StackBuilder`]
-    ///
-    /// Returns:
-    /// - [`BlockInput`]: The built [`BlockInput`]
     pub fn build(
         self,
+        this_block_uid: &Uid,
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
-        uid_of_this_block: &Uid,
         target_context: &TargetContext,
     ) -> BlockInput {
         let BlockInputBuilder { shadow, values } = self;
@@ -97,11 +92,12 @@ impl BlockInputBuilder {
             match value {
                 Some(StackOrValue::Value(v)) => values_b.push(Some(UidOrValue::Value(v))),
                 Some(StackOrValue::Stack(s)) => {
-                    let (mut s_builded, first_block_uid) = s.build(comment_buff, target_context);
+                    let first_block_uid = Uid::generate();
+                    let mut s_builded = s.build(&first_block_uid, comment_buff, target_context);
                     let first_block = s_builded.get_mut(&first_block_uid).unwrap();
                     match first_block {
                         Block::Normal(n) => {
-                            n.parent = Some(uid_of_this_block.clone().into_inner());
+                            n.parent = Some(this_block_uid.clone().into_inner());
                             n.top_level = false;
                             n.x = None;
                             n.y = None;
@@ -160,56 +156,6 @@ impl BlockNormalBuilder {
         self
     }
 
-    // pub fn add_input_arg<K: Into<String>>(self, key: K, arg: Arg) -> Self {
-    //     match arg {
-    //         Arg::Value(v) => self.add_input(
-    //             key.into(),
-    //             BlockInputBuilder::new(ShadowInputType::Shadow).input_some(StackOrValue::Value(v)),
-    //         ),
-    //         Arg::Stack(b) => self.add_input(
-    //             key.into(),
-    //             BlockInputBuilder::new(ShadowInputType::NoShadow)
-    //                 .input_some(StackOrValue::Stack(b)),
-    //         ),
-    //     }
-    // }
-
-    // pub fn add_input_into_arg<K: Into<String>, A: IntoInput<AT>, AT>(self, key: K, arg: A) -> Self {
-    //     self.add_input_arg(key, arg.into_arg())
-    // }
-
-    // pub fn add_input_stack<K: Into<String>>(mut self, key: K, stack_builder: StackBuilder) -> Self {
-    //     self.inputs.insert(
-    //         key.into(),
-    //         BlockInputBuilder::new(ShadowInputType::NoShadow)
-    //             .input_some(StackOrValue::Stack(stack_builder)),
-    //     );
-    //     self
-    // }
-
-    // pub fn add_input_into_stack<K: Into<String>, S: IntoStackArg>(self, key: K, stack: S) -> Self {
-    //     self.add_input_stack(key, stack.into_stack_builder())
-    // }
-
-    // pub fn add_optional_input_stack<K: Into<String>>(
-    //     self,
-    //     key: K,
-    //     stack_builder: Option<StackBuilder>,
-    // ) -> Self {
-    //     match stack_builder {
-    //         Some(stack_builder) => self.add_input_stack(key, stack_builder),
-    //         None => self,
-    //     }
-    // }
-
-    // pub fn add_optional_into_input_stack<K: Into<String>, IS: IntoStackArg>(
-    //     self,
-    //     key: K,
-    //     stack: Option<IS>,
-    // ) -> Self {
-    //     self.add_optional_input_stack(key, stack.map(IntoStackArg::into_stack_builder))
-    // }
-
     pub fn add_field<S: Into<String>>(
         mut self,
         key: S,
@@ -218,15 +164,6 @@ impl BlockNormalBuilder {
         self.fields.insert(key.into(), block_field_builder);
         self
     }
-
-    // pub fn add_into_field<S: Into<String>, F: IntoField<FT>, FT>(
-    //     mut self,
-    //     key: S,
-    //     field: F,
-    // ) -> Self {
-    //     self.fields.insert(key.into(), field.into_field());
-    //     self
-    // }
 
     pub fn shadow(mut self, is_shadow: bool) -> Self {
         self.shadow = is_shadow;
@@ -255,19 +192,13 @@ impl BlockNormalBuilder {
         self
     }
 
-    /// Requires:
-    /// - comment_buff: To continue building into [`BlockInputBuilder`] and add comment to it
-    /// - final_stack: To continue building into [`BlockInputBuilder`]
-    ///
-    /// Returns:
-    /// - [`Block`]: The built [`Block`]
-    /// - [`Uid`]: [`Uid`] of the built block
     fn build(
         self,
+        my_uid: &Uid,
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
         target_context: &TargetContext,
-    ) -> (BlockNormal, Uid) {
+    ) -> BlockNormal {
         let BlockNormalBuilder {
             opcode,
             comment,
@@ -278,7 +209,6 @@ impl BlockNormalBuilder {
             x,
             y,
         } = self;
-        let my_uid = Uid::generate();
         // let mut inputs_b: HashMap<String, BlockInput> = HashMap::default();
         // for (key, input) in inputs {
         //     inputs_b.insert(key, input.build(comment_buff, final_stack, &my_uid));
@@ -288,7 +218,7 @@ impl BlockNormalBuilder {
             .map(|(key, input)| {
                 (
                     key,
-                    input.build(comment_buff, final_stack, &my_uid, target_context),
+                    input.build(my_uid, comment_buff, final_stack, target_context),
                 )
             })
             .collect();
@@ -298,7 +228,8 @@ impl BlockNormalBuilder {
             .collect();
         let comment = match comment {
             Some(comment) => {
-                let (mut comment, comment_uid) = comment.build();
+                let comment_uid = Uid::generate();
+                let mut comment = comment.build();
                 comment.block_id = Some(my_uid.clone().into_inner());
                 comment_buff.insert(comment_uid.clone(), comment);
                 Some(comment_uid.into_inner())
@@ -318,7 +249,7 @@ impl BlockNormalBuilder {
             x: x.map(|x| x.into()),
             y: y.map(|y| y.into()),
         };
-        (block_b, my_uid)
+        block_b
     }
 }
 
@@ -370,7 +301,7 @@ impl BlockFieldBuilder {
         }
         .get(value_str)
         .map(|uid| uid.clone())
-        .unwrap_or("__unknown__".into());
+        .unwrap_or_else(|| Uid::new("__unknown__"));
         BlockField::WithId {
             value,
             id: Some(id.into_inner()),
@@ -391,6 +322,7 @@ pub struct BlockVarListBuilder {
     name: String,
     x: f64,
     y: f64,
+    comment: Option<CommentBuilder>,
 }
 
 impl BlockVarListBuilder {
@@ -404,6 +336,7 @@ impl BlockVarListBuilder {
             from: VarListFrom::Global,
             x: 0.,
             y: 0.,
+            comment: None,
         }
     }
 
@@ -417,7 +350,13 @@ impl BlockVarListBuilder {
             name: name.into(),
             x: 0.,
             y: 0.,
+            comment: None,
         }
+    }
+
+    pub fn comment(mut self, comment: CommentBuilder) -> BlockVarListBuilder {
+        self.comment = Some(comment);
+        self
     }
 
     pub fn pos(mut self, x: f64, y: f64) -> Self {
@@ -432,15 +371,20 @@ impl BlockVarListBuilder {
         self
     }
 
-    pub fn build(self, target_context: &TargetContext) -> (BlockVarListReporterTop, Uid) {
+    pub fn build(
+        self,
+        my_uid: &Uid,
+        comment_buff: &mut HashMap<Uid, Comment>,
+        target_context: &TargetContext,
+    ) -> BlockVarListReporterTop {
         let BlockVarListBuilder {
             kind,
             from,
             name,
             x,
             y,
+            comment,
         } = self;
-        let my_uid = Uid::generate();
         let varlist_id = match (&kind, from) {
             (ListOrVariable::Variable, VarListFrom::Global) => target_context.global_vars,
             (ListOrVariable::Variable, VarListFrom::Sprite) => target_context.this_sprite_vars,
@@ -449,7 +393,13 @@ impl BlockVarListBuilder {
         }
         .get(&name)
         .map(|uid| uid.clone())
-        .unwrap_or("__unknown__".into());
+        .unwrap_or(Uid::new("__unknown__"));
+        if let Some(comment) = comment {
+            let comment_uid = Uid::generate();
+            let mut comment = comment.build();
+            comment.block_id = Some(my_uid.clone().into_inner());
+            comment_buff.insert(comment_uid.clone(), comment);
+        }
         let block_varlist_b = BlockVarListReporterTop {
             kind,
             name,
@@ -457,7 +407,7 @@ impl BlockVarListBuilder {
             x: x.into(),
             y: y.into(),
         };
-        (block_varlist_b, my_uid)
+        block_varlist_b
     }
 }
 
@@ -478,18 +428,19 @@ pub struct TargetContext<'a> {
 impl BlockBuilder {
     pub fn build(
         self,
+        my_uid: &Uid,
         comment_buff: &mut HashMap<Uid, Comment>,
         final_stack: &mut HashMap<Uid, Block>,
         target_context: &TargetContext,
-    ) -> (Block, Uid) {
+    ) -> Block {
         match self {
             BlockBuilder::Normal(n) => {
-                let (b, uid) = n.build(comment_buff, final_stack, target_context);
-                (Block::Normal(b), uid)
+                let b = n.build(my_uid, comment_buff, final_stack, target_context);
+                Block::Normal(b)
             }
             BlockBuilder::VarList(vl) => {
-                let (b, uid) = vl.build(target_context);
-                (Block::VarList(b), uid)
+                let b = vl.build(my_uid, comment_buff, target_context);
+                Block::VarList(b)
             }
         }
     }
@@ -553,52 +504,48 @@ impl StackBuilder {
         self
     }
 
-    /// Requires:
-    /// - target: to continue building into [`BlockBuilder`]
-    ///
-    /// Returns:
-    /// - [`HashMap`]<Uid, Block>: The built stack
-    /// - [`Uid`]: Uid of the first block on the stack
     pub fn build(
         self,
+        first_block_uid: &Uid,
         comment_buff: &mut HashMap<Uid, Comment>,
         target_context: &TargetContext,
-    ) -> (HashMap<Uid, Block>, Uid) {
+    ) -> HashMap<Uid, Block> {
         let mut stack_b: HashMap<Uid, Block> = HashMap::default();
         let mut self_stack_iter = self.stack.into_iter();
-        let (first_block, first_block_uid) =
-            self_stack_iter
-                .next()
-                .unwrap()
-                .build(comment_buff, &mut stack_b, target_context);
+        let first_block = self_stack_iter.next().unwrap().build(
+            &first_block_uid,
+            comment_buff,
+            &mut stack_b,
+            target_context,
+        );
 
         match first_block {
             Block::Normal(mut first_block) => {
                 first_block.top_level = true;
                 first_block.x = Some(0.into());
                 first_block.y = Some(0.into());
-                let mut previous_block = Some((first_block, first_block_uid.clone()));
+                let mut previous_block = (first_block, first_block_uid.clone());
                 for block_builder2 in self_stack_iter {
-                    let (mut block1, block1_uid) = previous_block.take().unwrap();
-                    let (Block::Normal(mut block2), block2_uid) =
-                        block_builder2.build(comment_buff, &mut stack_b, target_context) else {
-                        panic!("BlockVarList shouldn't exist here")
+                    let (mut block1, block1_uid) = previous_block;
+                    let block2_uid = Uid::generate();
+                    let Block::Normal(mut block2) =
+                        block_builder2.build(&block2_uid, comment_buff, &mut stack_b, target_context) else {
+                        unreachable!("BlockVarList shouldn't exist here")
                     };
 
                     block1.next = Some(block2_uid.clone().into_inner());
                     block2.parent = Some(block1_uid.clone().into_inner());
 
-                    previous_block = Some((block2, block2_uid));
+                    previous_block = (block2, block2_uid);
 
                     stack_b.insert(block1_uid, Block::Normal(block1));
                 }
-                let previous_block = previous_block.unwrap();
                 stack_b.insert(previous_block.1, Block::Normal(previous_block.0));
-                (stack_b, first_block_uid)
+                stack_b
             }
             Block::VarList(vl) => {
                 stack_b.insert(first_block_uid.clone(), Block::VarList(vl));
-                (stack_b, first_block_uid)
+                stack_b
             }
         }
     }

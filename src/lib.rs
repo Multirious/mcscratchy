@@ -1,9 +1,10 @@
+pub mod export;
 pub mod opcode;
 pub mod project;
+pub mod resource;
 pub mod scripting;
 pub mod typed_scripting;
 pub mod uid;
-pub mod utils;
 
 #[cfg(test)]
 mod test {
@@ -13,24 +14,26 @@ mod test {
         blocks::*,
         if_else_chain_builder::if_,
     };
-    use crate::project::{
-        asset::{AssetBuilder, CostumeBuilder},
-        file::{ProjectFileBuilder, Resource},
-        script::{CommentBuilder, VariableBuilder},
-        target::{SpriteBuilder, StageBuilder, TargetBuilder},
-        ProjectBuilder,
+    use crate::{
+        export::export,
+        project::{
+            asset::{AssetBuilder, CostumeBuilder},
+            script::{CommentBuilder, VariableBuilder},
+            target::{SpriteBuilder, StageBuilder, TargetBuilder},
+            ProjectBuilder,
+        },
+        resource::Resource,
     };
     use std::env::var as envvar;
 
     #[test]
     fn test_creating_project() {
-        let export_dir = envvar("EXPORT_DIR").expect("EXPORT_DIR env");
-        let export_name = envvar("EXPORT_NAME").expect("EXPORT_NAME env");
+        let export_path = envvar("EXPORT_NAME").expect("EXPORT_NAME env");
 
         let stage_inner = TargetBuilder::new("Stage")
             .add_costume(CostumeBuilder::new(AssetBuilder::new(
                 "backdrop1",
-                Resource::load_and_verify("blank.svg").unwrap().unwrap(),
+                Resource::load("blank.svg").unwrap(),
             )))
             .add_comment(CommentBuilder::new("hi"));
         let stage = StageBuilder::new(stage_inner);
@@ -53,16 +56,12 @@ mod test {
             .add_variable("num", VariableBuilder::new(1.into()))
             .add_costume(CostumeBuilder::new(AssetBuilder::new(
                 "costume1",
-                Resource::load_and_verify("cat.svg").unwrap().unwrap(),
+                Resource::load("cat.svg").unwrap(),
             )))
             .layer_order(1);
         let sprite = SpriteBuilder::new(sprite_inner);
 
         let project = ProjectBuilder::new().set_stage(stage).add_sprite(sprite);
-        ProjectFileBuilder::new(project)
-            .name(export_name)
-            .path(export_dir)
-            .build()
-            .unwrap();
+        export(project, export_path).unwrap();
     }
 }

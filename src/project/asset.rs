@@ -1,8 +1,6 @@
 use rs_sb3::asset::{Asset, Costume, Sound};
 
-use crate::utils;
-
-use super::file::{Resource, ValidResource};
+use crate::resource::Resource;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CostumeBuilder {
@@ -71,32 +69,28 @@ impl SoundBuilder {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssetBuilder {
     name: String,
-    file: ValidResource,
+    resource: Resource,
 }
 
 impl AssetBuilder {
-    pub fn new<S: Into<String>>(name: S, file: ValidResource) -> AssetBuilder {
+    pub fn new<S: Into<String>>(name: S, resource: Resource) -> AssetBuilder {
         AssetBuilder {
             name: name.into(),
-            file,
+            resource,
         }
     }
 
-    pub fn build(self, file_buff: &mut Vec<Resource>) -> Asset {
-        let AssetBuilder { name, file } = self;
-        let md5_hash = utils::bytes_to_hex(&file.md5_hash());
-        let extension = file.extension;
+    pub fn build(self, res_buf: &mut Vec<Resource>) -> Asset {
+        let AssetBuilder { name, mut resource } = self;
+        let extension = resource.extension().to_owned();
+        let md5_hash = resource.get_or_compute_md5_hash();
         let asset = Asset {
-            asset_id: md5_hash.clone(),
+            asset_id: md5_hash.to_owned(),
             name,
-            md5ext: Some(md5_hash.clone() + "." + &extension),
-            data_format: extension.clone(),
+            md5ext: Some(md5_hash.to_owned() + "." + &extension),
+            data_format: extension,
         };
-        let md5_path: std::path::PathBuf = md5_hash.into();
-        file_buff.push(Resource {
-            path: md5_path.with_extension(extension),
-            content: file.file.content,
-        });
+        res_buf.push(resource);
         asset
     }
 }
